@@ -2,8 +2,7 @@ from typing import Tuple, Optional, Any
 import hashlib
 import binascii
 
-import ecdsa
-
+import sys, getopt
 
 p = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
 n = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
@@ -95,6 +94,20 @@ def has_square_y(P: Optional[Point]) -> bool:
 def has_even_y(P: Point) -> bool:
     return y(P) % 2 == 0
 
+def pubkey_gen_from_int(seckey: int) -> bytes:
+    P = point_mul(G, seckey)
+    assert P is not None
+    return bytes_from_point(P)
+
+def pubkey_gen_from_hex(seckey: hex) -> bytes:
+    seckey=bytes.fromhex(seckey)
+    d0 = int_from_bytes(seckey)
+    if not (1 <= d0 <= n - 1):
+        raise ValueError('The secret key must be an integer in the range 1..n-1.')
+    P = point_mul(G, d0)
+    assert P is not None
+    return bytes_from_point(P)
+
 def pubkey_gen(seckey: bytes) -> bytes:
     d0 = int_from_bytes(seckey)
     if not (1 <= d0 <= n - 1):
@@ -127,42 +140,53 @@ def schnorr_sign(msg: bytes, seckey: bytes, aux_rand: bytes) -> bytes:
         raise RuntimeError('The created signature does not pass verification.')
     return sig
 
-def generate_keys():
-    sk = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
-    private_key = sk.to_string().hex() #convert your private key to hex
-    vk = sk.get_verifying_key() #this is your verification key (public key)
-    public_key = vk.to_string().hex()
-    #encode key to make it shorter
-    public_key = base64.b64encode(bytes.fromhex(public_key))
-    return [sk, vk, private_key, public_key]
+def schnorr_verify(msg: bytes, pubkey: bytes, sig: bytes) -> bool:
+    if len(msg) != 32:
+        raise ValueError('The message must be a 32-byte array.')
+    if len(pubkey) != 32:
+        raise ValueError('The public key must be a 32-byte array.')
+    if len(sig) != 64:
+        raise ValueError('The signature must be a 64-byte array.')
+    P = lift_x_even_y(pubkey)
+    r = int_from_bytes(sig[0:32])
+    s = int_from_bytes(sig[32:64])
+    if (P is None) or (r >= p) or (s >= n):
+        return False
+    e = int_from_bytes(tagged_hash("BIP340/challenge", sig[0:32] + pubkey + msg)) % n
+    R = point_add(point_mul(G, s), point_mul(P, n - e))
+    if (R is None) or (not has_square_y(R)) or (x(R) != r):
+        return False
+    return True
 
+def main(argv):
+    seckey = ''
+    msg = ''
+    try:
+        opts, args = getopt.getopt(argv,"hs:m:",["sk=","msg="])
+    except getopt.GetoptError:
+        print('schnorr-sign.py -s <hex_secretkey> -m <message>')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print('schnorr-sign.py -s <hex_secretkey> -m <message>')
+            sys.exit()
+        elif opt in ("-s", "--sk"):
+            seckey = arg
+        elif opt in ("-m", "--msg"):
+            msg = arg
 
+    msg_bytes=hashlib.sha256(msg.encode()).digest()
+    msg_hex=hashlib.sha256(msg.encode()).hexdigest()
 
-[sk, vk, seckey_hex, pubkey_hex] = generate_keys()
+    print('seckey is :', seckey)
+    print('message digest is :', msg_hex)
+    seckey_bytes=bytes.fromhex(seckey)
+    aux_rand_hex="0000000000000000000000000000000000000000000000000000000000000001"
+    aux_rand = bytes.fromhex(aux_rand_hex)
+    sig=schnorr_sign(msg_bytes, seckey_bytes, aux_rand)
+    print("The signature is: ",sig.hex())
+    print("The public key is: ", pubkey_gen(seckey_bytes).hex())
 
-#seckey_hex = "B7E151628AED2A6ABF7158809CF4F3C762E7160F38B4DA56A784D9045190CFEF"
-#pubkey_hex="DFF1D77F2A671C5F36183726DB2341BE58FEAE1DA2DECED843240F7B502BA659"
-aux_rand_hex="0000000000000000000000000000000000000000000000000000000000000001"
-msg="This is a test message"
-msg_hex="243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89"
-sig_hex="0E12B8C520948A776753A96F21ABD7FDC2D7D0C0DDC90851BE17B04E75EF86A47EF0DA46C4DC4D0D1BCB8668C2CE16C54C7C23A6716EDE303AF86774917CF928"
-
-msg = bytes.fromhex(msg_hex)
-sig = bytes.fromhex(sig_hex)
-seckey = bytes.fromhex(seckey_hex)
-pubkey = bytes.fromhex(pubkey_hex)
-aux_rand = bytes.fromhex(aux_rand_hex)
-
-sig_actual = schnorr_sign(msg, seckey, aux_rand)
-
-if sig == sig_actual:
-    print(' * Passed signing test.')
-else:
-    print(' * Failed signing test.')
-    print('   Expected signature:', sig.hex().upper())
-    print('     Actual signature:', sig_actual.hex().upper())
-
-
-
-
+if __name__ == "__main__":
+   main(sys.argv[1:])
 

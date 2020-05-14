@@ -2,6 +2,8 @@ from typing import Tuple, Optional, Any
 import hashlib
 import binascii
 
+import sys, getopt
+
 
 p = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
 n = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
@@ -143,27 +145,41 @@ def schnorr_verify(msg: bytes, pubkey: bytes, sig: bytes) -> bool:
         return False
     return True
 
+def main(argv):
+    pubkey = ''
+    msg = ''
+    sig = ''
+    try:
+        opts, args = getopt.getopt(argv,"hs:p:m:",["sig=","pk=","msg="])
+    except getopt.GetoptError:
+        print('schnorr-verify.py -s <hex_signature> -p <hex_publickey> -m <message>')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print('schnorr-verify.py -s <hex_signature> -p <hex_publickey> -m <message>')
+            sys.exit()
+        elif opt in ("-p", "--pk"):
+            pubkey = arg
+        elif opt in ("-s", "--sig"):
+            sig = arg
+        elif opt in ("-m", "--msg"):
+            msg = arg
 
-seckey_hex = "B7E151628AED2A6ABF7158809CF4F3C762E7160F38B4DA56A784D9045190CFEF"
-pubkey_hex="DFF1D77F2A671C5F36183726DB2341BE58FEAE1DA2DECED843240F7B502BA659"
-aux_rand_hex="0000000000000000000000000000000000000000000000000000000000000001"
-msg_hex="243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89"
-sig_hex="0E12B8C520948A776753A96F21ABD7FDC2D7D0C0DDC90851BE17B04E75EF86A47EF0DA46C4DC4D0D1BCB8668C2CE16C54C7C23A6716EDE303AF86774917CF928"
+    msg_bytes=hashlib.sha256(msg.encode()).digest()
+    msg_hex=hashlib.sha256(msg.encode()).hexdigest()
+    sig_bytes=bytes.fromhex(sig)
+    pubkey_bytes=bytes.fromhex(pubkey)
 
-msg = bytes.fromhex(msg_hex)
-sig = bytes.fromhex(sig_hex)
-seckey = bytes.fromhex(seckey_hex)
-pubkey = bytes.fromhex(pubkey_hex)
-aux_rand = bytes.fromhex(aux_rand_hex)
+    print('pubkey is :', pubkey)
+    print('message digest is :', msg_hex)
+    aux_rand_hex="0000000000000000000000000000000000000000000000000000000000000001"
+    aux_rand = bytes.fromhex(aux_rand_hex)
+    print("The signature is: ",sig)
+    print("The public key is: ", pubkey)
+    print("Is the signature for this message and this public key?")
+    print(schnorr_verify(msg_bytes, pubkey_bytes, sig_bytes))
 
-sig_actual = schnorr_sign(msg, seckey, aux_rand)
+if __name__ == "__main__":
+   main(sys.argv[1:])
 
-if sig == sig_actual:
-    print(' * Passed signing test.')
-else:
-    print(' * Failed signing test.')
-    print('   Expected signature:', sig.hex().upper())
-    print('     Actual signature:', sig_actual.hex().upper())
-
-print(schnorr_verify(msg,pubkey,sig_actual))
 
