@@ -45,7 +45,7 @@ $ pip install typing
 ```console
 $ python create_keypair.py
 $ python schnorr_sign.py -s <secret_key> -m <message>
-$ python schnorr-verify.py -s <signature> -p <public_key> -m <message>
+$ python schnorr_verify.py -s <signature> -p <public_key> -m <message>
 ```
 
 #### Made to educate the BIT PoliTO team 🎓 by  
