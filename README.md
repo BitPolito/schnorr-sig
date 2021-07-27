@@ -10,7 +10,7 @@ There are four scripts:
 `schnorr.py`: is the BIP340 reference implementation minimally changed to perform a test from the `test-vector.csv`; see <https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki> and the reference implementation at <https://github.com/bitcoin/bips/tree/master/bip-0340>.
 
 - ##### Private key creator
-`create_priv_key.py`: asks for a sentence (no newline characters), SAH256-hashes it and creates a key pair which can be use to `schnorr-sign` and `schnorr-verify` a message.
+`create_priv_key.py`: asks for a sentence (no newline characters), SHA256 hashes it and creates a key pair which can be use to `schnorr-sign` and `schnorr-verify` a message.
 
 - ##### Schnorr signer
 `schnorr-sign.py`: from a private key and a message, the scripts returns the signature and the public key; see `python3 schnorr-sign.py -h` for the syntax.

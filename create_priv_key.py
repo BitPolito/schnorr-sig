@@ -7,7 +7,7 @@ if __name__ == "__main__":
     dgst_hex = dgst.hex()
     privkey = (int(dgst_hex, 16) % n)
 
-    print("Your seed phrase was:", instring)
+    print("Your seed phrase was:", string)
     print()
     print("Your private key as bytes is:", dgst)
     print("Your private key as hex is:", dgst_hex)
