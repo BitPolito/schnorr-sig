@@ -1,11 +1,12 @@
 from typing import Tuple, Optional
 import hashlib
 
+
 # Elliptic curve parameters
 p = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
 n = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
 G = (0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798,
-     0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B9)
+     0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8)
 
 # Points are tuples of X and Y coordinates
 # the point at infinity is represented by the None keyword
@@ -79,7 +80,6 @@ def lift_x_square_y(b: bytes) -> Optional[Point]:
     y_sq = (pow(x, 3, p) + 7) % p
     y = pow(y_sq, (p + 1) // 4, p)
     if pow(y, 2, p) != y_sq:
-        # ERRORE!
         return None
     return (x, y)
 

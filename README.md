@@ -7,22 +7,25 @@ This is a **Schnorr signatures utility** for *educational purposes* only, develo
 There are four scripts:
 
 - ##### Schnorr tester
-`schnorr.py`: is the BIP340 reference implementation minimally changed to perform a test from the `test-vector.csv`; see <https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki> and the reference implementation at <https://github.com/bitcoin/bips/tree/master/bip-0340>.
+`schnorr_test.py` is the BIP340 reference implementation minimally changed to perform a test from the `test-vector.csv`;
+See <https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki> and the reference implementation at <https://github.com/bitcoin/bips/tree/master/bip-0340>.
 
-- ##### Private key creator
-`create_priv_key.py`: asks for a sentence (no newline characters), SHA256 hashes it and creates a key pair which can be use to `schnorr-sign` and `schnorr-verify` a message.
+- ##### Key pair creator
+`create_keypair.py` asks for a sentence (no newline characters), SHA256 hashes it and then creates a key pair which can be used to `schnorr_sign` and `schnorr_verify` a message.
 
 - ##### Schnorr signer
-`schnorr-sign.py`: from a private key and a message, the scripts returns the signature and the public key; see `python3 schnorr-sign.py -h` for the syntax.
+`schnorr_sign.py` returns the signature and the public key from a private key and a message;
+See `python3 schnorr_sign.py -h` for the syntax.
 
 - ##### Schnorr verifier
-`schnorr-verify.py`: from a public key, a message and a signature, the script returns `True` or `False`; see `python3 schnorr-verify.py -h` for the syntax.
+`schnorr_verify.py` returns `True` or `False` from a public key, a message and a signature;
+See `python3 schnorr_verify.py -h` for the syntax.
 
-Both the scripts `schnorr-sign.py` and `schnorr-verify.py` are taken from the reference implementation. 
+Both the scripts `schnorr_sign.py` and `schnorr_verify.py` are taken from the reference implementation. 
 
-I created the `create_priv_key.py`, but should not be used in production environments because it is not secure enough.
+The script `create_keypair.py` should not be used in production environments because it is not secure enough.
 
-The functions used in those scripts are collected in the library `schnorrlib.py`.
+The functions used in those scripts are collected in the library `schnorr_lib.py`.
 
 ## How to install and run code
 ### Installation
@@ -36,13 +39,12 @@ $ cd schnorr-sig
 
 # install general requirements
 $ pip install typing 
-$ pip install hashlib
 ```
 
 ### Run
 ```console
-$ python create_priv_key.py
-$ python schnorr-sign.py -s <private_key> -m <message>
+$ python create_keypair.py
+$ python schnorr_sign.py -s <secret_key> -m <message>
 $ python schnorr-verify.py -s <signature> -p <public_key> -m <message>
 ```
 
