@@ -1,6 +1,6 @@
 # Schnorr Signatures
 
-This is a **Schnorr signatures utility** for *educational purposes* only, developed by Fadi Barbara ([@disnocen](https://github.com/disnocen)) and published by BIT PoliTO.
+This is a **Schnorr signatures utility** for *educational purposes* only, developed by Fadi Barbara ([@disnocen](https://github.com/disnocen)) and published by BIT PoliTO in Python3.
 
 ## Scripts
 
