@@ -51,5 +51,5 @@ $ python schnorr_verify.py -s <signature> -p <public_key> -m <message>
 #### Made to educate the BIT PoliTO team 🎓 by  
   
 <a href="https://github.com/BITPoliTO/schnorr-sig/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=bitpolito/schnorr-sig" />
+  <img src="https://contrib.rocks/image?repo=BITPoliTO/schnorr-sig" />
 </a>
