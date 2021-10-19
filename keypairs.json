@@ -1,0 +1,13 @@
+{
+   "$schema": "./keypairs_schema.json",
+   "keypairs": [
+      {
+         "privateKey": "904d3b0f474df0ef3e3e5e5778f6eb9bd7e21d255ecaa40abed6ab67e848f7fd",
+         "publicKey": "776eb891cb42e365391a6b0da1d4d007f17a18bd8144695e716d6f19f2e928dd"
+      },
+      {
+         "privateKey": "ed797559372b7b651013541c02f4a076aab857524ce813ab9d9c020e0b978c11",
+         "publicKey": "eda88cfc35318fa890c51eb25a38a1f605e0ec9683d545f4d7e4503cc49ade80"
+      }
+   ]
+}

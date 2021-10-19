@@ -129,7 +129,7 @@ def pubkey_gen_from_hex(seckey: hex) -> bytes:
 
 # Generate auxiliary random of 32 bytes
 def get_aux_rand() -> bytes:
-    return os.urandom(32);
+    return os.urandom(32)
 
 # Generate Schnorr signature
 def schnorr_sign(msg: bytes, seckey: bytes, aux_rand: bytes) -> bytes:

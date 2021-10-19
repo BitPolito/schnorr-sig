@@ -1,64 +1,73 @@
-import schnorr_lib
-import sys, getopt
+import schnorr_lib as sl
+import sys, getopt, json
+from binascii import hexlify, unhexlify 
 
+# TODO controllare i tipi
 
 def main(argv):
-        
-    # we start from here ...
 
-    n = int(input("musig n-n, n: "))
+    msg = "messaggio da firmare"
+
+    # Get keypairs
+    keypairs = json.load(open("keypairs.json", "r"))
     
-    if ( n == 2):
-        p1 = int(input("pK1 signer: "))
-        p2 = int(input("pK2 signer: "))
+    l = ""
+    for x in keypairs["keypairs"]:
+        l += x["publicKey"] # concatenazione chiavi in hex
+    L = sl.hash_sha256(unhexlify(l))
 
-        P1 = schnorr_lib.pubkey_gen(p1) 
-        P2 = schnorr_lib.pubkey_gen(p2) 
+    Psum = (0, 0)
+    Rsum = (0, 0)
+    X = (0, 0)
 
-        Psum = schnorr_lib.point_add(P1,P2)
+    for x,i in enumerate(keypairs["keypairs"]):
+        di = x["privateKey"]
+        Pi = sl.pubkey_gen_from_hex(di)
+        Psum = sl.point_add(Psum, Pi)
+        
+        # va bene generare k così? 
+        t = sl.xor_bytes(unhexlify(di), sl.tagged_hash("BIP340/aux", sl.get_aux_rand()))
+        ki = sl.int_from_bytes(sl.tagged_hash("BIP340/nonce", t + sl.bytes_from_point(Pi) + msg)) % sl.n
+        if ki == 0:
+            raise RuntimeError('Failure. This happens only with negligible probability.')
+       
+        keypairs["keypairs"][i]["ki"] = ki
+        # print( keypairs["keypairs"][i]["ki"] = ki )
 
-        k1 = int(input("k1: "))
-        k2 = int(input("k2: "))
-        e_  = int(input("e' = h(Rsum||X||M): "))
+        Ri = sl.point_mul(ki, sl.G)
+        Rsum = sl.point_add(Rsum, Ri)
 
         # bi = h(L||Pi), dove L = h(P1||..||Pn)
-        b1 = int(input("b1: "))
-        b2 = int(input("b2: "))
+        bi = sl.hash_sha256(L+Pi)
+        keypairs["keypairs"][i]["bi"] = bi
+        # print( keypairs["keypairs"][i]["bi"] = bi )
 
-        x1 = schnorr_lib.point_mul(b1,P1)
-        x2 = schnorr_lib.point_mul(b2,P2)
+        xi = sl.point_mul(Pi, bi)
+        X = sl.point_add(X, xi)
 
-        X = schnorr_lib.point_add(x1,x2)
-
-        R1 = schnorr_lib.point_mul(k1, schnorr_lib.G)
-        R2 = schnorr_lib.point_mul(k2, schnorr_lib.G)
-
-        Rsum = schnorr_lib.point_add(R1,R2)
-        # e = e'*bi
-        s1 = (k1+p1*e_*b1) % schnorr_lib.n
-        s2 = (k2+p2*e_*b2) % schnorr_lib.n
-
-        ssum = (s1+s2) % schnorr_lib.n
-
-        print("x1 =", x1, "x2 =", x2, "X = x1 + x2 =", X)
-        print("P1 =", P1, "P2 =", P2, "Psum = P1 + P2 =", Psum)
-        print("R1 =", R1, "R2 =", R2, "Rsum = R1 + R2 =", Rsum)
-
-        print("s1 = k + p1*e'*b1 mod N =",s1)
-        print("s2 = k + p2*e'*b2 mod N =",s2)
-        print("ssum = s1 + s2 mod N =",ssum)
-
-        print(">>> Then the sign is (Rsum,ssum)")
-
-        print("    verification")
+    e_ = sl.hash_sha256(X + Rsum + msg)
     
-        Rv = schnorr_lib.point_mul(ssum,schnorr_lib.G)
-        other = schnorr_lib.point_mul(e_,X)
-        sum = schnorr_lib.point_add(other,Rsum)
+    ssum = 0
+    for x in keypairs["keypairs"]:
+        # TODO dovremmo tornare in interi
+        di = x["privateKey"]
+        e = e_*x["bi"] % sl.n
+        si = x["ki"]+di+e
+        ssum += si % sl.n
+    
+    ssum = ssum % sl.n
+    
+    print(">>> Then the sign is (Rsum,ssum)")
 
-        print("Rv = ssum*G =",Rv)
-        print("Rsum + e'*X =", Rsum, "+", other, "=", sum)
-        print(">>> The sign is right? (Rv equals Rsum + e'*X)?", Rv == sum)
+    # TODO VERIFICATION
+
+    # Rv = schnorr_lib.point_mul(ssum,schnorr_lib.G)
+    # other = schnorr_lib.point_mul(e_,X)
+    # sum = schnorr_lib.point_add(other,Rsum)
+
+    # print("Rv = ssum*G =",Rv)
+    # print("Rsum + e'*X =", Rsum, "+", other, "=", sum)
+    # print(">>> The sign is right? (Rv equals Rsum + e'*X)?", Rv == sum)
 
 if __name__ == "__main__":
    main(sys.argv[1:])
