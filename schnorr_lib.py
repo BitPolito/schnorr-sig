@@ -1,5 +1,5 @@
 from typing import Tuple, Optional
-import hashlib
+import hashlib, os
 
 
 # Elliptic curve parameters
@@ -126,6 +126,10 @@ def pubkey_gen_from_hex(seckey: hex) -> bytes:
     P = point_mul(G, d0)
     assert P is not None
     return bytes_from_point(P)
+
+# Generate auxiliary random of 32 bytes
+def get_aux_rand() -> bytes:
+    return os.urandom(32);
 
 # Generate Schnorr signature
 def schnorr_sign(msg: bytes, seckey: bytes, aux_rand: bytes) -> bytes:
