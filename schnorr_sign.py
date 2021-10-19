@@ -1,4 +1,4 @@
-from schnorr_lib import schnorr_sign, pubkey_gen_from_hex, hash_sha256
+from schnorr_lib import schnorr_sign, pubkey_gen_from_hex, hash_sha256, get_aux_rand
 import sys, getopt
 
 
@@ -23,8 +23,7 @@ def main(argv):
     msg_bytes = hash_sha256(msg.encode())
     msg_hex = msg_bytes.hex()
     seckey_bytes = bytes.fromhex(seckey)
-    aux_rand_hex = "0000000000000000000000000000000000000000000000000000000000000001"
-    aux_rand = bytes.fromhex(aux_rand_hex)
+    aux_rand = get_aux_rand()
     sig = schnorr_sign(msg_bytes, seckey_bytes, aux_rand)
     print('The private key is:', seckey)
     print("The public key is: ", pubkey_gen_from_hex(seckey).hex())
