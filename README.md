@@ -43,9 +43,9 @@ $ pip install typing
 
 ### Run
 ```console
-$ python create_keypair.py
-$ python schnorr_sign.py -s <secret_key> -m <message>
-$ python schnorr_verify.py -s <signature> -p <public_key> -m <message>
+$ python3 create_keypair.py
+$ python3 schnorr_sign.py -s <secret_key> -m <message>
+$ python3 schnorr_verify.py -s <signature> -p <public_key> -m <message>
 ```
 
 #### Made to educate the BIT PoliTO team 🎓 by  
