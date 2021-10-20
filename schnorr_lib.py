@@ -1,4 +1,5 @@
 from typing import Tuple, Optional
+from binascii import unhexlify
 import hashlib, os
 
 
@@ -15,6 +16,10 @@ Point = Tuple[int, int]
 # Get bytes from an int
 def bytes_from_int(x: int) -> bytes:
     return x.to_bytes(32, byteorder="big")
+
+# Get bytes from a hex
+def bytes_from_hex(x: hex) -> bytes:
+    return unhexlify(x)
 
 # Get bytes from a point
 def bytes_from_point(P: Point) -> bytes:
@@ -91,7 +96,7 @@ def lift_x_even_y(b: bytes) -> Optional[Point]:
         return (x(P), y(P) if y(P) % 2 == 0 else p - y(P))
 
 # Get hash digest with SHA256
-def hash_sha256(b: bytes) -> bytes:
+def sha256(b: bytes) -> bytes:
     return hashlib.sha256(b).digest()
 
 # Check if an int is square
@@ -127,6 +132,7 @@ def pubkey_gen_from_hex(seckey: hex) -> bytes:
     assert P is not None
     return bytes_from_point(P)
 
+# Generate public key (as a point) from an int
 def pubkey_point_gen_from_int(seckey: int):
     P = point_mul(G, seckey)
     assert P is not None 

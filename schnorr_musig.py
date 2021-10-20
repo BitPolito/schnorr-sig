@@ -1,82 +1,85 @@
 import schnorr_lib as sl
-import sys, getopt, json
-from binascii import hexlify, unhexlify 
+import sys, json
 
 def main(argv):
 
+    # Get message and its digest
     msg = "messaggio da firmare"
-    # msg_bytes = sl.hash_sha256(msg.encode()) # va effettuato l'hash? 
-    msg_bytes = msg.encode()
+    M = sl.sha256(msg.encode())
 
     # Get keypairs
     keypairs = json.load(open("keypairs.json", "r"))
     
-    l = b''
+    # L = h(P1 || ... || Pn)
+    Li = b''
     for x in keypairs["keypairs"]:
-        l += sl.pubkey_gen_from_hex(x["privateKey"])
-    L = sl.hash_sha256(l)
+        Li += sl.pubkey_gen_from_hex(x["privateKey"])
+    L = sl.sha256(Li)
 
     Psum = None
     Rsum = None
     X = None
     for x in keypairs["keypairs"]:
-        di = x["privateKey"]
-        #Pi = sl.pubkey_gen_from_hex(di)
-        Pi = sl.pubkey_point_gen_from_int(sl.int_from_bytes(unhexlify(di)))
-
+        # Get private key di and public key Pi
+        di = sl.bytes_from_hex(x["privateKey"])
+        Pi = sl.pubkey_point_gen_from_int(sl.int_from_bytes(di))
+        # Psum = P1 + ... + Pn
         if Psum == None:
             Psum = Pi
         else:
             Psum = sl.point_add(Psum, Pi)
         
-        # va bene generare k così? 
-        t = sl.xor_bytes(unhexlify(di), sl.tagged_hash("BIP340/aux", sl.get_aux_rand()))
-        ki = sl.int_from_bytes(sl.tagged_hash("BIP340/nonce", t + sl.bytes_from_point(Pi) + msg_bytes)) % sl.n
+        # Random ki with tagged hash
+        t = sl.xor_bytes(di, sl.tagged_hash("BIP340/aux", sl.get_aux_rand()))
+        ki = sl.int_from_bytes(sl.tagged_hash("BIP340/nonce", t + sl.bytes_from_point(Pi) + M)) % sl.n
         if ki == 0:
             raise RuntimeError('Failure. This happens only with negligible probability.')
         x["ki"] = ki
 
+        # Ri = ki * G
         Ri = sl.point_mul(sl.G, ki)
-        if Ri == None:
+        # Rsum = R1 + ... + Rn
+        if Rsum == None:
             Rsum = Ri
         else:
             Rsum = sl.point_add(Rsum, Ri)
 
-        # bi = h(L||Pi), dove L = h(P1||..||Pn)
-        bi = sl.int_from_bytes(sl.hash_sha256(L + sl.bytes_from_point(Pi)))
+        # bi = h(L||Pi)
+        bi = sl.int_from_bytes(sl.sha256(L + sl.bytes_from_point(Pi)))
         x["bi"] = bi
 
-        xi = sl.point_mul(Pi, bi)
+        # Xi = bi * Pi
+        Xi = sl.point_mul(Pi, bi)
+        # X = X1 + ... + Xn
         if X == None:
-            X = xi
+            X = Xi
         else:
-            X = sl.point_add(X, xi)
+            X = sl.point_add(X, Xi)
 
-    e_ = sl.int_from_bytes(sl.hash_sha256(sl.bytes_from_point(X) + sl.bytes_from_point(Rsum) + msg_bytes))
+    # e_ = h(X || Rsum || M)
+    e_ = sl.int_from_bytes(sl.sha256(sl.bytes_from_point(X) + sl.bytes_from_point(Rsum) + M))
     
     ssum = 0
     for x in keypairs["keypairs"]:
-        di = sl.int_from_bytes(unhexlify(x["privateKey"]))
+        # Get private key di
+        di = sl.int_from_bytes(sl.bytes_from_hex(x["privateKey"]))
+        # ei = h(X || Rsum || M) * bi
         ei = e_ * x["bi"]
-        si = x["ki"] + di + ei % sl.n
+        # si = ki + di * ei mod n
+        si = (x["ki"] + (di * ei)) % sl.n
+        # ssum = s1 + ... + sn
         ssum += si
-    
     ssum = ssum % sl.n
     
-    print(">>> Then the sign is (Rsum,ssum)")
+    print(">>> The sig is (Rsum,ssum)")
 
     # VERIFICATION
-
+    # ssum * G = Rsum + e_ * X
     Rv = sl.point_mul(sl.G, ssum)
     other = sl.point_mul(X, e_)
     sumv = sl.point_add(Rsum, other)
 
-    # print("Rv = ssum*G =",Rv)
-    # print("Rsum + e'*X =", Rsum, "+", other, "=", sum)
-    print(">>> Is the sign right? (Rv equals Rsum + e'*X)?", Rv == sumv)
-    print(Rv)
-    print()
-    print(sumv)
+    print(">>> Is the sig right? (Rv equals Rsum + e'*X)?", Rv == sumv)
 
 if __name__ == "__main__":
    main(sys.argv[1:])
