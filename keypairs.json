@@ -1,13 +1,17 @@
 {
-   "$schema": "./keypairs_schema.json",
-   "keypairs": [
-      {
-         "privateKey": "904d3b0f474df0ef3e3e5e5778f6eb9bd7e21d255ecaa40abed6ab67e848f7fd",
-         "publicKey": "776eb891cb42e365391a6b0da1d4d007f17a18bd8144695e716d6f19f2e928dd"
-      },
-      {
-         "privateKey": "ed797559372b7b651013541c02f4a076aab857524ce813ab9d9c020e0b978c11",
-         "publicKey": "eda88cfc35318fa890c51eb25a38a1f605e0ec9683d545f4d7e4503cc49ade80"
-      }
-   ]
+    "$schema": "./keypairs_schema.json",
+    "keypairs": [
+        {
+            "privateKey": "771b2643cc050361d1ee93532388c34bcf5a7452b966b067f1c433147afa9153",
+            "publicKey": "9e37ad3e89f9abc3278a9a75b1329db47548d2bcda04e5933ab3758ebc6ad286"
+        },
+        {
+            "privateKey": "4c762d3b6f41bc76a24d9aab7b119a92daa20061be35ecd00d4ffc4c9cd27e46",
+            "publicKey": "9daee7b27adfd968b5a2f02bc5d5b1b4fe153ee8621a5a7f37ffa11b60939511"
+        },
+        {
+            "privateKey": "52eb3fb6da873568f56bb2aebdc6f7af7084c9151c8eca0e1978f4bb9832dd96",
+            "publicKey": "2970ad56f8342dd8fe8523bc0b4db3db93f0903150db24a72cf4b0960b516ce8"
+        }
+    ]
 }
