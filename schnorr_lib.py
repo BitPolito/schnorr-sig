@@ -257,8 +257,16 @@ def schnorr_musig_sign(M: bytes, keypairs: str) -> bytes:
         # ssum = s1 + ... + sn
         ssum += si
     ssum = ssum % n
+    
+    # The signature is (Rsum, ssum)
+    return (Rsum, ssum, X)
 
-    print("[i] The sig is (Rsum, ssum)")
+# Verify Schnorr MuSig signature
+def schnorr_musig_verify(Rsum: Point, ssum: int, M: bytes, X: Point) -> bool:
+
+    # e_ = h(X || Rsum || M)
+    e_ = int_from_bytes(
+        sha256(bytes_from_point(X) + bytes_from_point(Rsum) + M))
 
     # VERIFICATION
     # ssum * G = Rsum + e_ * X
@@ -266,6 +274,4 @@ def schnorr_musig_sign(M: bytes, keypairs: str) -> bytes:
     other = point_mul(X, e_)
     sumv = point_add(Rsum, other)
 
-    print("[i] Is the sig right? (Rv equals Rsum + e'*X)?", Rv == sumv)
-
-    return (Rsum, ssum)
+    return Rv == sumv
