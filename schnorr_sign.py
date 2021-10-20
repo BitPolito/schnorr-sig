@@ -1,4 +1,4 @@
-from schnorr_lib import schnorr_sign, pubkey_gen_from_hex, hash_sha256, get_aux_rand
+from schnorr_lib import schnorr_sign, pubkey_gen_from_hex, sha256, get_aux_rand
 import sys, getopt
 
 
@@ -20,7 +20,7 @@ def main(argv):
         elif opt in ("-m", "--msg"):
             msg = arg
 
-    msg_bytes = hash_sha256(msg.encode())
+    msg_bytes = sha256(msg.encode())
     msg_hex = msg_bytes.hex()
     seckey_bytes = bytes.fromhex(seckey)
     aux_rand = get_aux_rand()

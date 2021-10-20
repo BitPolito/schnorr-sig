@@ -1,4 +1,4 @@
-from schnorr_lib import schnorr_verify, hash_sha256
+from schnorr_lib import schnorr_verify, sha256
 import sys, getopt
 
 
@@ -22,7 +22,7 @@ def main(argv):
         elif opt in ("-m", "--msg"):
             msg = arg
 
-    msg_bytes = hash_sha256(msg.encode())
+    msg_bytes = sha256(msg.encode())
     msg_hex = msg_bytes.hex()
     sig_bytes = bytes.fromhex(sig)
     pubkey_bytes = bytes.fromhex(pubkey)
