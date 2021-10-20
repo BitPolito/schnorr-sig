@@ -5,11 +5,6 @@ from binascii import hexlify, unhexlify
 def main(argv):
 
     msg = "messaggio da firmare"
-    # msg_bytes = sl.hash_sha256(msg.encode()) # va effettuato l'hash? 
-    msg_bytes = msg.encode()
-
-    O = sl.point_add(sl.G, sl.H)
-    print(O)
 
     # Get keypairs
     keypairs = json.load(open("keypairs.json", "r"))
@@ -41,15 +36,15 @@ def main(argv):
         bi = sl.int_from_bytes(sl.hash_sha256(L + Pi))
         x["bi"] = bi
 
-        xi = sl.point_mul(Pi, sl.int_from_bytes(bi))
+        xi = sl.point_mul(Pi, bi)
         X = sl.point_add(X, xi)
 
-    e_ = sl.hash_sha256(sl.bytes_from_point(X) + sl.bytes_from_point(Rsum) + msg.encode())
+    e_ = sl.int_from_bytes(sl.hash_sha256(sl.bytes_from_point(X) + sl.bytes_from_point(Rsum) + msg.encode()))
     
     ssum = 0
     for x in keypairs["keypairs"]:
         di = sl.int_from_bytes(unhexlify(x["privateKey"]))
-        ei = sl.int_from_bytes(e_) * x["bi"]
+        ei = e_ * x["bi"]
         si = x["ki"] + di + ei % sl.n
         ssum += si
     
@@ -60,7 +55,7 @@ def main(argv):
     # VERIFICATION
 
     Rv = sl.point_mul(sl.G, ssum)
-    other = sl.point_mul(X, sl.int_from_bytes(e_))
+    other = sl.point_mul(X, e_)
     sumv = sl.point_add(Rsum, other)
 
     # print("Rv = ssum*G =",Rv)
