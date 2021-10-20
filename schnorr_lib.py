@@ -1,6 +1,6 @@
 from typing import Tuple, Optional
 from binascii import unhexlify
-import hashlib, os
+import hashlib, os, json
 
 
 # Elliptic curve parameters
@@ -191,3 +191,81 @@ def schnorr_verify(msg: bytes, pubkey: bytes, sig: bytes) -> bool:
     if (R is None) or (not has_square_y(R)) or (x(R) != r):
         return False
     return True
+
+# Generate Schnorr MuSig signature
+def schnorr_musig_sign(M: bytes, keypairs: str) -> bytes:
+    # L = h(P1 || ... || Pn)
+    Li = b''
+    for u in keypairs["keypairs"]:
+        Li += pubkey_gen_from_hex(u["privateKey"])
+    L = sha256(Li)
+
+    Psum = None
+    Rsum = None
+    X = None
+    for u in keypairs["keypairs"]:
+        # Get private key di and public key Pi
+        di = bytes_from_hex(u["privateKey"])
+        Pi = pubkey_point_gen_from_int(int_from_bytes(di))
+        # Psum = P1 + ... + Pn
+        if Psum == None:
+            Psum = Pi
+        else:
+            Psum = point_add(Psum, Pi)
+
+        # Random ki with tagged hash
+        t = xor_bytes(di, tagged_hash("BIP340/aux", get_aux_rand()))
+        ki = int_from_bytes(tagged_hash(
+            "BIP340/nonce", t + bytes_from_point(Pi) + M)) % n
+        if ki == 0:
+            raise RuntimeError(
+                'Failure. This happens only with negligible probability.')
+        u["ki"] = ki
+
+        # Ri = ki * G
+        Ri = point_mul(G, ki)
+        # Rsum = R1 + ... + Rn
+        if Rsum == None:
+            Rsum = Ri
+        else:
+            Rsum = point_add(Rsum, Ri)
+
+        # bi = h(L||Pi)
+        bi = int_from_bytes(sha256(L + bytes_from_point(Pi)))
+        u["bi"] = bi
+
+        # Xi = bi * Pi
+        Xi = point_mul(Pi, bi)
+        # X = X1 + ... + Xn
+        if X == None:
+            X = Xi
+        else:
+            X = point_add(X, Xi)
+
+    # e_ = h(X || Rsum || M)
+    e_ = int_from_bytes(
+        sha256(bytes_from_point(X) + bytes_from_point(Rsum) + M))
+
+    ssum = 0
+    for u in keypairs["keypairs"]:
+        # Get private key di
+        di = int_from_bytes(bytes_from_hex(u["privateKey"]))
+        # ei = h(X || Rsum || M) * bi
+        ei = e_ * u["bi"]
+        # si = ki + di * ei mod n
+        si = (u["ki"] + (di * ei)) % n
+        # ssum = s1 + ... + sn
+        ssum += si
+    ssum = ssum % n
+
+    print("[i] The sig is (Rsum, ssum)")
+
+    # VERIFICATION
+    # ssum * G = Rsum + e_ * X
+    Rv = point_mul(G, ssum)
+    other = point_mul(X, e_)
+    sumv = point_add(Rsum, other)
+
+    print("[i] Is the sig right? (Rv equals Rsum + e'*X)?", Rv == sumv)
+
+    return (Rsum, ssum)

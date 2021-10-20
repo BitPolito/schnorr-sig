@@ -8,8 +8,7 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv, "hs:m:", ["sk=", "msg="])
     except getopt.GetoptError:
-        # print('schnorr_sign.py -s <hex_secretkey> -m <message>')
-        print('command not found')
+        print('command not found. type -h for help')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
