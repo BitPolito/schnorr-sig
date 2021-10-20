@@ -127,6 +127,11 @@ def pubkey_gen_from_hex(seckey: hex) -> bytes:
     assert P is not None
     return bytes_from_point(P)
 
+def pubkey_point_gen_from_int(seckey: int):
+    P = point_mul(G, seckey)
+    assert P is not None 
+    return P
+
 # Generate auxiliary random of 32 bytes
 def get_aux_rand() -> bytes:
     return os.urandom(32)
