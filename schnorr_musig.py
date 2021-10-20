@@ -5,6 +5,8 @@ from binascii import hexlify, unhexlify
 def main(argv):
 
     msg = "messaggio da firmare"
+    # msg_bytes = sl.hash_sha256(msg.encode()) # va effettuato l'hash? 
+    msg_bytes = msg.encode()
 
     O = sl.point_add(sl.G, sl.H)
     print(O)
@@ -39,7 +41,7 @@ def main(argv):
         bi = sl.int_from_bytes(sl.hash_sha256(L + Pi))
         x["bi"] = bi
 
-        xi = sl.point_mul(Pi, bi)
+        xi = sl.point_mul(Pi, sl.int_from_bytes(bi))
         X = sl.point_add(X, xi)
 
     e_ = sl.hash_sha256(sl.bytes_from_point(X) + sl.bytes_from_point(Rsum) + msg.encode())
