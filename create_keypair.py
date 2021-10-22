@@ -3,23 +3,26 @@ import os, json, getopt, sys
 
 def main(argv):
 
-    n_keys = 1
-
     try:
-        opts, args = getopt.getopt(argv, "hn:", ["nkeys="])
+        opts, args = getopt.getopt(argv, "hn:", ["help", "nkeys="])
     except getopt.GetoptError:
         print('[i] Command not found. Type -h for help')
         sys.exit(2)
         
     for opt, arg in opts:
-        if opt == '-h':
+        if opt in ("-h", "--help"):
             print('[i] Command: create_keypair.py -n <number_of_keys>')
             sys.exit()
         elif opt in ("-n", "--nkeys"):
-            n_keys = int(arg)
-        else:
-            print('[i] unhandled option. Type -h for help ')
-            sys.exit(2)
+            if arg.isnumeric():
+                n_keys = int(arg)
+            else:
+                print('[i] Number needed. Type -h for help ')
+                sys.exit(2)
+    
+    if not opts:
+        print('[i] Argument needed. Type -h for help ')
+        sys.exit(2)
 
     # Create json
     keypairs = {
@@ -45,7 +48,6 @@ def main(argv):
     
 
 if __name__ == "__main__":
-    
     main(sys.argv[1:])
 
     
