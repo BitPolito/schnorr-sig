@@ -143,20 +143,17 @@ def get_aux_rand() -> bytes:
     return os.urandom(32)
 
 # Generate Schnorr signature
-def schnorr_sign(msg: bytes, seckey: bytes, aux_rand: bytes) -> bytes:
+def schnorr_sign(msg: bytes, keypair: str) -> bytes:
     if len(msg) != 32:
         raise ValueError('The message must be a 32-byte array.')
-    d0 = int_from_bytes(seckey)
+    d0 = int_from_bytes(bytes_from_hex(keypair["keypairs"][0]["privateKey"]))
     if not (1 <= d0 <= n - 1):
         raise ValueError(
             'The secret key must be an integer in the range 1..n-1.')
-    if len(aux_rand) != 32:
-        raise ValueError(
-            'aux_rand must be 32 bytes instead of %i.' % len(aux_rand))
     P = point_mul(G, d0)
     assert P is not None
     d = d0 if has_even_y(P) else n - d0
-    t = xor_bytes(bytes_from_int(d), tagged_hash("BIP340/aux", aux_rand))
+    t = xor_bytes(bytes_from_int(d), tagged_hash("BIP340/aux", get_aux_rand()))
     k0 = int_from_bytes(tagged_hash(
         "BIP340/nonce", t + bytes_from_point(P) + msg)) % n
     if k0 == 0:
@@ -168,6 +165,7 @@ def schnorr_sign(msg: bytes, seckey: bytes, aux_rand: bytes) -> bytes:
     e = int_from_bytes(tagged_hash("BIP340/challenge",
                                    bytes_from_point(R) + bytes_from_point(P) + msg)) % n
     sig = bytes_from_point(R) + bytes_from_int((k + e * d) % n)
+    
     if not schnorr_verify(msg, bytes_from_point(P), sig):
         raise RuntimeError('The created signature does not pass verification.')
     return sig
@@ -193,7 +191,10 @@ def schnorr_verify(msg: bytes, pubkey: bytes, sig: bytes) -> bool:
     return True
 
 # Generate Schnorr MuSig signature
-def schnorr_musig_sign(M: bytes, keypairs: str) -> bytes:
+def schnorr_musig_sign(msg: bytes, keypairs: str) -> bytes:
+    if len(msg) != 32:
+        raise ValueError('The message must be a 32-byte array.')
+    
     # L = h(P1 || ... || Pn)
     Li = b''
     for u in keypairs["keypairs"]:
@@ -206,7 +207,10 @@ def schnorr_musig_sign(M: bytes, keypairs: str) -> bytes:
     for u in keypairs["keypairs"]:
         # Get private key di and public key Pi
         di = bytes_from_hex(u["privateKey"])
+        if not (1 <= int_from_bytes(di) <= n - 1):
+            raise ValueError('The secret key must be an integer in the range 1..n-1.')
         Pi = pubkey_point_gen_from_int(int_from_bytes(di))
+        assert Pi is not None
         # Psum = P1 + ... + Pn
         if Psum == None:
             Psum = Pi
@@ -216,7 +220,7 @@ def schnorr_musig_sign(M: bytes, keypairs: str) -> bytes:
         # Random ki with tagged hash
         t = xor_bytes(di, tagged_hash("BIP340/aux", get_aux_rand()))
         ki = int_from_bytes(tagged_hash(
-            "BIP340/nonce", t + bytes_from_point(Pi) + M)) % n
+            "BIP340/nonce", t + bytes_from_point(Pi) + msg)) % n
         if ki == 0:
             raise RuntimeError(
                 'Failure. This happens only with negligible probability.')
@@ -244,7 +248,7 @@ def schnorr_musig_sign(M: bytes, keypairs: str) -> bytes:
 
     # e_ = h(X || Rsum || M)
     e_ = int_from_bytes(
-        sha256(bytes_from_point(X) + bytes_from_point(Rsum) + M))
+        sha256(bytes_from_point(X) + bytes_from_point(Rsum) + msg))
 
     ssum = 0
     for u in keypairs["keypairs"]:
@@ -257,16 +261,17 @@ def schnorr_musig_sign(M: bytes, keypairs: str) -> bytes:
         # ssum = s1 + ... + sn
         ssum += si
     ssum = ssum % n
-    
-    # The signature is (Rsum, ssum)
+
+    if not schnorr_musig_verify(msg, Rsum, ssum, X):
+        raise RuntimeError('The created signature does not pass verification.')
     return (Rsum, ssum, X)
 
 # Verify Schnorr MuSig signature
-def schnorr_musig_verify(Rsum: Point, ssum: int, M: bytes, X: Point) -> bool:
+def schnorr_musig_verify(msg: bytes, Rsum: Point, ssum: int, X: Point) -> bool:
 
     # e_ = h(X || Rsum || M)
     e_ = int_from_bytes(
-        sha256(bytes_from_point(X) + bytes_from_point(Rsum) + M))
+        sha256(bytes_from_point(X) + bytes_from_point(Rsum) + msg))
 
     # VERIFICATION
     # ssum * G = Rsum + e_ * X
