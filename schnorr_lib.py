@@ -201,7 +201,6 @@ def schnorr_musig_sign(msg: bytes, keypairs: str) -> bytes:
         Li += pubkey_gen_from_hex(u["privateKey"])
     L = sha256(Li)
 
-    Psum = None
     Rsum = None
     X = None
     for u in keypairs["keypairs"]:
@@ -211,11 +210,6 @@ def schnorr_musig_sign(msg: bytes, keypairs: str) -> bytes:
             raise ValueError('The secret key must be an integer in the range 1..n-1.')
         Pi = pubkey_point_gen_from_int(int_from_bytes(di))
         assert Pi is not None
-        # Psum = P1 + ... + Pn
-        if Psum == None:
-            Psum = Pi
-        else:
-            Psum = point_add(Psum, Pi)
 
         # Random ki with tagged hash
         t = xor_bytes(di, tagged_hash("BIP340/aux", get_aux_rand()))
