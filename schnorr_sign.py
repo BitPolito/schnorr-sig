@@ -5,21 +5,20 @@ import sys, getopt, json
 def main(argv):
 
     try:
-        opts, args = getopt.getopt(argv, "hn:m:", ["nkeys=", "msg="])
+        opts, args = getopt.getopt(argv, "hm:", ["msg=", "musig"])
     except getopt.GetoptError:
         print('[i] Command not found. Type -h for help')
         sys.exit(2)
+    
+    # Flag
+    musig = 0
 
     for opt, arg in opts:
         if opt in ("-h", "--help"):
-            print('[i] Command: schnorr_sign.py -n <number_of_keys> -m <message>')
+            print('[i] Command: schnorr_sign.py --musig (optional) -m <message>')
             sys.exit()
-        elif opt in ("-n", "--nkeys"):
-            if arg.isnumeric():
-                n_keys = int(arg)
-            else:
-                print('[i] Number needed. Type -h for help ')
-                sys.exit(2)
+        elif opt == "--musig":
+            musig = 1
         elif opt in ("-m", "--msg"):
             msg = arg
 
@@ -43,14 +42,14 @@ def main(argv):
 
     # Signature
     try:
-        if n_keys == 1:
+        if musig == 0:
             sig = schnorr_sign(M, keypairs)
             result = schnorr_verify(M, bytes_from_hex(
-            keypairs["keypairs"][0]["publicKey"]), sig)
+                keypairs["keypairs"][0]["publicKey"]), sig)
             print('> Message =', M.hex())
             print("> Signature =", sig.hex())
             print(">>> Is the signature right?", result)
-        elif n_keys > 1:
+        elif musig == 1:
             Rsum, ssum, X = schnorr_musig_sign(M, keypairs)
             result = schnorr_musig_verify(M, Rsum, ssum, X)
             print('> Message =', M.hex())
