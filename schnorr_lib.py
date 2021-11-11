@@ -274,3 +274,110 @@ def schnorr_musig_verify(msg: bytes, Rsum: Point, ssum: int, X: Point) -> bool:
     sumv = point_add(Rsum, other)
 
     return Rv == sumv
+
+# Generate Schnorr MuSig2 signature
+def schnorr_musig2_sign(msg: bytes, keypairs: str) -> bytes:
+    if len(msg) != 32:
+        raise ValueError('The message must be a 32-byte array.')
+
+    # L = h(P1 || ... || Pn)
+    Li = b''
+    for u in keypairs["keypairs"]:
+        Li += pubkey_gen_from_hex(u["privateKey"])
+    L = sha256(Li)
+
+    X = None
+    nu = 2
+
+    for u in keypairs["keypairs"]:
+        # Get private key di and public key Pi
+        di = bytes_from_hex(u["privateKey"])
+        if not (1 <= int_from_bytes(di) <= n - 1):
+            raise ValueError('The secret key must be an integer in the range 1..n-1.')
+        Pi = pubkey_point_gen_from_int(int_from_bytes(di))
+        assert Pi is not None
+
+        # Random ki with tagged hash
+        k_list = []
+        for i in range(nu):
+            t = xor_bytes(di, tagged_hash("BIP340/aux", get_aux_rand()))
+            k_list.insert(i, int_from_bytes(tagged_hash(
+                "BIP340/nonce", t + bytes_from_point(Pi) + msg)) % n)
+            if k_list[i] == 0:
+                raise RuntimeError(
+                    'Failure. This happens only with negligible probability.')
+        u["k_list"] = k_list
+
+
+        R_list = []
+        # Ri = ki * G
+        for i in range(nu):
+            Ri = point_mul(G, k_list[i])
+            # Rsum = R1 + ... + Rn
+            R_list.insert(i, Ri)
+
+        u["R_list"] = R_list
+
+        # bi = h(L||Pi)
+        ai = int_from_bytes(sha256(L + bytes_from_point(Pi)))
+        u["ai"] = ai
+
+        # Xi = bi * Pi
+        Xi = point_mul(Pi, ai)
+        # X = X1 + ... + Xn
+        if X == None:
+            X = Xi
+        else:
+            X = point_add(X, Xi)
+
+
+    R_j = []
+    for i in range(nu):
+        R_j.insert(i,  None)
+        for u in keypairs["keypairs"]:
+
+            if R_j[i] == None:
+                R_j.insert(i, u["R_list"][i])
+            else:
+                R_j[i] = point_add(R_j, u["R_list"][i])
+
+    Rbytes = b''
+    for R in enumerate(R_j):
+        Rbytes += bytes_from_point(R)
+
+    b = sha256(bytes_from_point(X) + Rbytes + msg)
+
+    Rsum = None
+    for j, R in enumerate(R_j):
+        # Rsum = SUM ( b^(j-1)*Rj )
+        # j-1 = j, in python we start from 0!
+        R = point_mul(R, b ** j)
+        if Rsum == None:
+            Rsum = R
+        else:
+            Rsum = point_add(Rsum, R)
+
+
+    # e_ = h(X || Rsum || M), nel paper e_ = c
+    c = int_from_bytes(
+        sha256(bytes_from_point(X) + bytes_from_point(Rsum) + msg))
+
+    ssum = 0
+    for u in keypairs["keypairs"]:
+        # Get private key di
+        di = int_from_bytes(bytes_from_hex(u["privateKey"]))
+        # ei = h(X || Rsum || M) * bi
+        ei = c * u["ai"] * di
+
+        rb = b''
+        for j in range(nu):
+            rb += u["ki"] * b**j
+
+        si = (ei * rb) % n
+        # ssum = s1 + ... + sn
+        ssum += si
+    ssum = ssum % n
+
+    if not schnorr_musig_verify(msg, Rsum, ssum, X):
+        raise RuntimeError('The created signature does not pass verification.')
+    return (Rsum, ssum, X)
