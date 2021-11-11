@@ -1,35 +1,34 @@
 # Schnorr Signatures
 
-This is a **Schnorr signatures utility** for *educational purposes* only, developed by Fadi Barbara ([@disnocen](https://github.com/disnocen)) and published by BIT PoliTO in Python3.
+This is a **Schnorr signatures utility** for *educational purposes* only, developed by BIT PoliTO in Python3.
+
+The classic signature and verification functions are developed from the BIP340 reference implementation, while we tried to keep as close as possible to it the MuSig functions, even if they are not specified (yet).
 
 ## Scripts
 
-There are four scripts:
+There are four main scripts:
 
 - #### Key pair creator
-`create_keypair.py` asks for a sentence (no newline characters), SHA256 hashes it and then creates a key pair which can be used to `schnorr_sign` and `schnorr_verify` a message.
+`create_keypair.py` creates one or more key pairs which are stored in a JSON file and can be used to sign and verify a message.
+**Syntax**: `create_keypair.py -n <number of keys>`
 
 - #### Schnorr signer
-`schnorr_sign.py` returns the signature and the public key from a private key and a message. <br>
-See `python schnorr_sign.py -h` for the syntax.
+`schnorr_sign.py` returns the signature from one or more private keys and a message. <br>
+**Syntax**: `schnorr_sign.py --musig (optional) -m <message>`
 
 - #### Schnorr verifier
-`schnorr_verify.py` returns `True` or `False` from a public key, a message and a signature. <br>
-See `python schnorr_verify.py -h` for the syntax.
+`schnorr_verify.py` returns `True` or `False` from a signature, a single public key or an aggregated one, and a message. <br>
+**Syntax**: `schnorr_verify.py -s <signature> -p <public_key> -m <message>`
 
 - #### Schnorr tester
 `schnorr_test.py` is the BIP340 reference implementation minimally changed to perform a test from the `test-vector.csv`. <br>
 See <https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki> and the reference implementation at <https://github.com/bitcoin/bips/tree/master/bip-0340>.
 
-Both the scripts `schnorr_sign.py` and `schnorr_verify.py` are taken from the reference implementation. 
-
-The script `create_keypair.py` should not be used in production environments because it is not secure enough.
-
-The functions used in those scripts are collected in the library `schnorr_lib.py`.
+All the functions used in those scripts are collected in the library `schnorr_lib.py`.
 
 ## How to install and run code
-### Installation
 
+### Installation
 ```console
 # clone the repo
 $ git clone https://github.com/BITPoliTO/schnorr-sig.git
@@ -41,12 +40,15 @@ $ cd schnorr-sig
 $ pip install typing 
 ```
 
-### Run
+### Usage
 ```console
-$ python3 create_keypair.py
-$ python3 schnorr_sign.py -s <secret_key> -m <message>
+$ python3 create_keypair.py -n <number_of_keys>
+$ python3 schnorr_sign.py --musig (optional) -m <message>
 $ python3 schnorr_verify.py -s <signature> -p <public_key> -m <message>
 ```
+
+## Contributing
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
 #### Made to educate the BIT PoliTO team 🎓 by  
   
