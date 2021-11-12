@@ -1,7 +1,6 @@
 from typing import Tuple, Optional
 from binascii import unhexlify
 import hashlib, os, json
-import pprint
 
 # Elliptic curve parameters
 p = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
@@ -276,20 +275,20 @@ def schnorr_musig_verify(msg: bytes, Rsum: Point, ssum: int, X: Point) -> bool:
     return Rv == sumv
 
 # Generate Schnorr MuSig2 signature
-def schnorr_musig2_sign(msg: bytes, keypairs: str) -> bytes:
+def schnorr_musig2_sign(msg: bytes, users: str) -> bytes:
     if len(msg) != 32:
         raise ValueError('The message must be a 32-byte array.')
 
-    # L = h(P1 || ... || Pn)
+    # Key aggregation (KeyAgg), L = h(P1 || ... || Pn)
     Li = b''
-    for u in keypairs["keypairs"]:
+    for u in users["keypairs"]:
         Li += pubkey_gen_from_hex(u["privateKey"])
     L = sha256(Li)
 
     X = None
     nu = 2
 
-    for u in keypairs["keypairs"]:
+    for u in users["keypairs"]:
         # Get private key di and public key Pi
         di = bytes_from_hex(u["privateKey"])
         if not (1 <= int_from_bytes(di) <= n - 1):
@@ -297,35 +296,31 @@ def schnorr_musig2_sign(msg: bytes, keypairs: str) -> bytes:
         Pi = pubkey_point_gen_from_int(int_from_bytes(di))
         assert Pi is not None
 
-        # Random ki with tagged hash
-        k_list = []
-        for i in range(nu):
-            t = xor_bytes(di, tagged_hash("BIP340/aux", get_aux_rand()))
-            k_list.insert(i, int_from_bytes(tagged_hash(
-                "BIP340/nonce", t + bytes_from_point(Pi) + msg)) % n)
-            if k_list[i] == 0:
+        # First signing round (Sign and SignAgg)
+        r_list = []
+        R_list = []
+        for j in range(nu):
+            r = xor_bytes(di, tagged_hash("BIP340/aux", get_aux_rand()))
+            r_list.insert(j, int_from_bytes(tagged_hash(
+                "BIP340/nonce", r + bytes_from_point(Pi) + msg)) % n)
+            if r_list[j] == 0:
                 raise RuntimeError(
                     'Failure. This happens only with negligible probability.')
-        u["k_list"] = k_list
+            
+            # i rapresent the user
+            # Ri,j = ri,j * G
+            Rij = point_mul(G, r_list[j])
+            R_list.insert(j, Rij)
 
-        pprint.pprint(u)
-
-        R_list = []
-        # Ri = ki * G
-        for i in range(nu):
-            Ri = point_mul(G, k_list[i])
-            # Rsum = R1 + ... + Rn
-            R_list.insert(i, Ri)
-
+        u["r_list"] = r_list
         u["R_list"] = R_list
-
-        pprint.pprint(u)
-
-        # bi = h(L||Pi)
+      
+        # KeyAggCoef, ai = h(L||Pi)
         ai = int_from_bytes(sha256(L + bytes_from_point(Pi)))
         u["ai"] = ai
 
-        # Xi = bi * Pi
+        # Xi here is not the public key used in the paper
+        # Computation of X~,  Xi = ai * Pi
         Xi = point_mul(Pi, ai)
         # X = X1 + ... + Xn
         if X == None:
@@ -333,28 +328,30 @@ def schnorr_musig2_sign(msg: bytes, keypairs: str) -> bytes:
         else:
             X = point_add(X, Xi)
 
+    # SignAgg
+    # for each j in {1 .. nu} aggregator compute Rj as sum of Rij  (where i goes
+    # from 1 to n, and n is the number of user, while j is fixed for each round)
+    # Rj is a set, where is size is nu
 
-    R_j = []
-    for i in range(nu):
-        R_j.insert(i,  None)
-        for u in keypairs["keypairs"]:
-            
-            if R_j[i] == None:
-                R_j.insert(i, u["R_list"][i])
+    Rj = []
+    for j in range(nu):
+        Rj.insert(j,  None)
+        for u in users["keypairs"]:
+            if Rj[j] == None:
+                Rj[j] =  u["R_list"][j]
             else:
-                R_j[i] = point_add(R_j[i], u["R_list"][i])
-
-    print("*** R_j")
-    pprint.pprint(R_j)
-
+                Rj[j] = point_add(Rj[j], u["R_list"][j])
+    
+    # Second signing rount (Sign', SignAgg', Sign'')
     Rbytes = b''
-    for R in enumerate(R_j):
+    for R in Rj:
         Rbytes += bytes_from_point(R)
 
     b = sha256(bytes_from_point(X) + Rbytes + msg)
 
+    # Rsum is R in the paper
     Rsum = None
-    for j, R in enumerate(R_j):
+    for j, R in enumerate(Rj):
         # Rsum = SUM ( b^(j-1)*Rj )
         # j-1 = j, in python we start from 0!
         R = point_mul(R, int_from_bytes(b) ** j)
@@ -363,24 +360,23 @@ def schnorr_musig2_sign(msg: bytes, keypairs: str) -> bytes:
         else:
             Rsum = point_add(Rsum, R)
 
-
     # e_ = h(X || Rsum || M), nel paper e_ = c
     c = int_from_bytes(
         sha256(bytes_from_point(X) + bytes_from_point(Rsum) + msg))
 
     ssum = 0
-    for u in keypairs["keypairs"]:
+    for u in users["keypairs"]:
         # Get private key di
         di = int_from_bytes(bytes_from_hex(u["privateKey"]))
 
         # ei = h(X || Rsum || M) * bi
         ei = c * u["ai"] * di
-
-        rb = 0
+    
+        rb = 0 
         for j in range(nu):
-            rb += u["k_list"][i] * int_from_bytes(b)**j
+            rb += u["r_list"][j] * int_from_bytes(b)**j
 
-        si = (ei * rb) % n
+        si = (ei + rb) % n
         # ssum = s1 + ... + sn
         ssum += si
     ssum = ssum % n
