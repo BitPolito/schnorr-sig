@@ -1,7 +1,7 @@
 from typing import Tuple, Optional
 from binascii import unhexlify
 import hashlib, os, json
-
+import pprint
 
 # Elliptic curve parameters
 p = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
@@ -308,6 +308,7 @@ def schnorr_musig2_sign(msg: bytes, keypairs: str) -> bytes:
                     'Failure. This happens only with negligible probability.')
         u["k_list"] = k_list
 
+        pprint.pprint(u)
 
         R_list = []
         # Ri = ki * G
@@ -317,6 +318,8 @@ def schnorr_musig2_sign(msg: bytes, keypairs: str) -> bytes:
             R_list.insert(i, Ri)
 
         u["R_list"] = R_list
+
+        pprint.pprint(u)
 
         # bi = h(L||Pi)
         ai = int_from_bytes(sha256(L + bytes_from_point(Pi)))
@@ -335,11 +338,14 @@ def schnorr_musig2_sign(msg: bytes, keypairs: str) -> bytes:
     for i in range(nu):
         R_j.insert(i,  None)
         for u in keypairs["keypairs"]:
-
+            
             if R_j[i] == None:
                 R_j.insert(i, u["R_list"][i])
             else:
-                R_j[i] = point_add(R_j, u["R_list"][i])
+                R_j[i] = point_add(R_j[i], u["R_list"][i])
+
+    print("*** R_j")
+    pprint.pprint(R_j)
 
     Rbytes = b''
     for R in enumerate(R_j):
@@ -351,7 +357,7 @@ def schnorr_musig2_sign(msg: bytes, keypairs: str) -> bytes:
     for j, R in enumerate(R_j):
         # Rsum = SUM ( b^(j-1)*Rj )
         # j-1 = j, in python we start from 0!
-        R = point_mul(R, b ** j)
+        R = point_mul(R, int_from_bytes(b) ** j)
         if Rsum == None:
             Rsum = R
         else:
@@ -366,12 +372,13 @@ def schnorr_musig2_sign(msg: bytes, keypairs: str) -> bytes:
     for u in keypairs["keypairs"]:
         # Get private key di
         di = int_from_bytes(bytes_from_hex(u["privateKey"]))
+
         # ei = h(X || Rsum || M) * bi
         ei = c * u["ai"] * di
 
-        rb = b''
+        rb = 0
         for j in range(nu):
-            rb += u["ki"] * b**j
+            rb += u["k_list"][i] * int_from_bytes(b)**j
 
         si = (ei * rb) % n
         # ssum = s1 + ... + sn
