@@ -279,7 +279,7 @@ def schnorr_musig2_sign(msg: bytes, users: str) -> bytes:
     if len(msg) != 32:
         raise ValueError('The message must be a 32-byte array.')
 
-    # Key aggregation (KeyAgg), L = h(P1 || ... || Pn)
+    # Key aggregation (KeyAgg) step, L = h(P1 || ... || Pn)
     Li = b''
     for u in users["keypairs"]:
         Li += pubkey_gen_from_hex(u["privateKey"])
@@ -296,7 +296,7 @@ def schnorr_musig2_sign(msg: bytes, users: str) -> bytes:
         Pi = pubkey_point_gen_from_int(int_from_bytes(di))
         assert Pi is not None
 
-        # First signing round (Sign and SignAgg)
+        # First signing round (Sign and SignAgg) 
         r_list = []
         R_list = []
         for j in range(nu):
@@ -328,10 +328,10 @@ def schnorr_musig2_sign(msg: bytes, users: str) -> bytes:
         else:
             X = point_add(X, Xi)
 
-    # SignAgg
+    # SignAgg step
     # for each j in {1 .. nu} aggregator compute Rj as sum of Rij  (where i goes
     # from 1 to n, and n is the number of user, while j is fixed for each round)
-    # Rj is a set, where is size is nu
+    # Rj is a set, where its size is nu
 
     Rj = []
     for j in range(nu):
@@ -343,6 +343,7 @@ def schnorr_musig2_sign(msg: bytes, users: str) -> bytes:
                 Rj[j] = point_add(Rj[j], u["R_list"][j])
     
     # Second signing rount (Sign', SignAgg', Sign'')
+    # Sign' step
     Rbytes = b''
     for R in Rj:
         Rbytes += bytes_from_point(R)
@@ -364,6 +365,7 @@ def schnorr_musig2_sign(msg: bytes, users: str) -> bytes:
     c = int_from_bytes(
         sha256(bytes_from_point(X) + bytes_from_point(Rsum) + msg))
 
+    # SignAgg' step
     ssum = 0
     for u in users["keypairs"]:
         # Get private key di
@@ -371,7 +373,7 @@ def schnorr_musig2_sign(msg: bytes, users: str) -> bytes:
 
         # ei = h(X || Rsum || M) * bi
         ei = c * u["ai"] * di
-    
+
         rb = 0 
         for j in range(nu):
             rb += u["r_list"][j] * int_from_bytes(b)**j
