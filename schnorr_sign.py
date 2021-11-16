@@ -1,30 +1,18 @@
+import argparse
+import json
+import sys
+
 from schnorr_lib import sha256, schnorr_sign, schnorr_verify, schnorr_musig_sign, schnorr_musig_verify, bytes_from_hex
-import sys, getopt, json
 
 
-def main(argv):
-
-    try:
-        opts, args = getopt.getopt(argv, "hm:", ["msg=", "musig"])
-    except getopt.GetoptError:
-        print('[i] Command not found. Type -h for help')
-        sys.exit(2)
-    
-    # Flag
-    musig = 0
-
-    for opt, arg in opts:
-        if opt in ("-h", "--help"):
-            print('[i] Command: schnorr_sign.py --musig (optional) -m <message>')
-            sys.exit()
-        elif opt == "--musig":
-            musig = 1
-        elif opt in ("-m", "--msg"):
-            msg = arg
-
-    if not opts:
-        print('[i] Argument needed. Type -h for help ')
-        sys.exit(2)
+def main():
+    parser = argparse.ArgumentParser(
+        description='returns the signature and the public key from a private key and a message')
+    parser.add_argument('-m', '--message', type=str, required=True, help='Message')
+    parser.add_argument('--musig', action='store_true', help="Use musig")
+    args = parser.parse_args()
+    msg = args.message
+    musig = args.musig  # Flag
 
     # Get message digest
     try:
@@ -42,14 +30,14 @@ def main(argv):
 
     # Signature
     try:
-        if musig == 0:
+        if not musig:
             sig = schnorr_sign(M, keypairs)
             result = schnorr_verify(M, bytes_from_hex(
                 keypairs["keypairs"][0]["publicKey"]), sig)
             print('> Message =', M.hex())
             print("> Signature =", sig.hex())
             print(">>> Is the signature right?", result)
-        elif musig == 1:
+        elif musig:
             Rsum, ssum, X = schnorr_musig_sign(M, keypairs)
             result = schnorr_musig_verify(M, Rsum, ssum, X)
             print('> Message =', M.hex())
@@ -61,5 +49,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-   main(sys.argv[1:])
-
+    main()
