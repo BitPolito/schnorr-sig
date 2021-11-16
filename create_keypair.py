@@ -6,9 +6,7 @@ from schnorr_lib import n, pubkey_gen_from_int
 
 
 def main():
-    parser = argparse.ArgumentParser(description='asks for a sentence (no newline characters), SHA256 hashes it and '
-                                                 'then creates a key pair which can be used to schnorr_sign and '
-                                                 'schnorr_verify a message')
+    parser = argparse.ArgumentParser(description='creates one or more key pairs which are stored in a JSON file and can be used to sign and verify a message')
     parser.add_argument('-n', '--nkeys', type=int, required=True, help='Number of pairs of keys to generate')
     n_keys = parser.parse_args().nkeys
 
