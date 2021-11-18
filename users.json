@@ -1,6 +1,6 @@
 {
-    "$schema": "./keypairs_schema.json",
-    "keypairs": [
+    "$schema": "./users.json",
+    "users": [
         {
             "privateKey": "9f50315bc7ed2b5959b3a5c68a3b02571162f122920dfac165cb71de5f02496d",
             "publicKey": "ac9b796e9ebb1bca11a40e662200bba82f97cc73f4bf51e0157717eec86a2d99"
