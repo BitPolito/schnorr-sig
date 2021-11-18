@@ -145,7 +145,7 @@ def get_aux_rand() -> bytes:
 def schnorr_sign(msg: bytes, keypair: str) -> bytes:
     if len(msg) != 32:
         raise ValueError('The message must be a 32-byte array.')
-    d0 = int_from_bytes(bytes_from_hex(keypair["keypairs"][0]["privateKey"]))
+    d0 = int_from_bytes(bytes_from_hex(keypair["privateKey"]))
     if not (1 <= d0 <= n - 1):
         raise ValueError(
             'The secret key must be an integer in the range 1..n-1.')
@@ -190,19 +190,19 @@ def schnorr_verify(msg: bytes, pubkey: bytes, sig: bytes) -> bool:
     return True
 
 # Generate Schnorr MuSig signature
-def schnorr_musig_sign(msg: bytes, keypairs: str) -> bytes:
+def schnorr_musig_sign(msg: bytes, users: list) -> bytes:
     if len(msg) != 32:
         raise ValueError('The message must be a 32-byte array.')
     
     # L = h(P1 || ... || Pn)
     Li = b''
-    for u in keypairs["keypairs"]:
+    for u in users:
         Li += pubkey_gen_from_hex(u["privateKey"])
     L = sha256(Li)
 
     Rsum = None
     X = None
-    for u in keypairs["keypairs"]:
+    for u in users:
         # Get private key di and public key Pi
         di = bytes_from_hex(u["privateKey"])
         if not (1 <= int_from_bytes(di) <= n - 1):
@@ -244,7 +244,7 @@ def schnorr_musig_sign(msg: bytes, keypairs: str) -> bytes:
         sha256(bytes_from_point(X) + bytes_from_point(Rsum) + msg))
 
     ssum = 0
-    for u in keypairs["keypairs"]:
+    for u in users:
         # Get private key di
         di = int_from_bytes(bytes_from_hex(u["privateKey"]))
         # ei = h(X || Rsum || M) * bi
@@ -275,7 +275,7 @@ def schnorr_musig_verify(msg: bytes, Rsum: Point, ssum: int, X: Point) -> bool:
     return Rv == sumv
 
 # Generate Schnorr MuSig2 signature
-def schnorr_musig2_sign(msg: bytes, users: str) -> bytes:
+def schnorr_musig2_sign(msg: bytes, users: list) -> bytes:
     if len(msg) != 32:
         raise ValueError('The message must be a 32-byte array.')
 
@@ -284,12 +284,12 @@ def schnorr_musig2_sign(msg: bytes, users: str) -> bytes:
     # Key aggregation (KeyAgg)
     # L = h(P1 || ... || Pn)
     Li = b''
-    for u in users["keypairs"]:
+    for u in users:
         Li += pubkey_gen_from_hex(u["privateKey"])
     L = sha256(Li)
 
     X = None
-    for u in users["keypairs"]:
+    for u in users:
         # Get private key di and public key Pi
         di = bytes_from_hex(u["privateKey"])
         if not (1 <= int_from_bytes(di) <= n - 1):
@@ -335,7 +335,7 @@ def schnorr_musig2_sign(msg: bytes, users: str) -> bytes:
     Rj_list = []
     for j in range(nu):
         Rj_list.append(None)
-        for u in users["keypairs"]:
+        for u in users:
             if Rj_list[j] == None:
                 Rj_list[j] = u["R_list"][j]
             else:
@@ -365,7 +365,7 @@ def schnorr_musig2_sign(msg: bytes, users: str) -> bytes:
 
     # SignAgg' step
     ssum = 0
-    for u in users["keypairs"]:
+    for u in users:
         # Get private key di
         di = int_from_bytes(bytes_from_hex(u["privateKey"]))
 
