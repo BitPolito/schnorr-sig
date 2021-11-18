@@ -11,9 +11,9 @@ def main():
     n_keys = parser.parse_args().nkeys
 
     # Create json
-    keypairs = {
-        "$schema": "./keypairs_schema.json",
-        "keypairs": []
+    users = {
+        "$schema": "./users_schema.json",
+        "users": []
     }
 
     # Generate n keys
@@ -21,13 +21,13 @@ def main():
         priv = os.urandom(32)
         privkey = int(priv.hex(), 16) % n
 
-        keypairs["keypairs"].append({
+        users["users"].append({
             "privateKey": hex(privkey).replace('0x', ''),
             "publicKey": pubkey_gen_from_int(privkey).hex()
         })
 
-    json_object = json.dumps(keypairs, indent=4)
-    with open("keypairs.json", "w") as f:
+    json_object = json.dumps(users, indent=4)
+    with open("users.json", "w") as f:
         f.write(json_object)
 
     print("[i] Keypair(s) generated:", n_keys)

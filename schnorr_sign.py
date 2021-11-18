@@ -52,8 +52,8 @@ def main():
             print('> Message =', M.hex())
             print("> Signature =", Rsum, ssum)
             print(">>> Is the signature right?", result)
-    except Exception:
-        print("[e] Error. Number of keys should be defined")
+    except Exception as e:
+        print("[e] Exception: \n", e)
         sys.exit(2)
 
 
