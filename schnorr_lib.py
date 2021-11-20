@@ -28,6 +28,10 @@ def bytes_from_point(P: Point) -> bytes:
 def int_from_bytes(b: bytes) -> int:
     return int.from_bytes(b, byteorder="big")
 
+# Get an int from hex
+def int_from_hex(x: hex) -> int:
+    return int.from_bytes(unhexlify(x), byteorder="big")
+
 # Get x coordinate from a point
 def x(P: Point) -> int:
     return P[0]
@@ -141,6 +145,22 @@ def pubkey_point_gen_from_int(seckey: int):
 def get_aux_rand() -> bytes:
     return os.urandom(32)
 
+# Extract R_x int value from signature 
+def get_int_R_from_sig(sig: bytes) -> int:
+    return int_from_bytes(sig[0:32])
+
+# Extract s int value from signature 
+def get_int_s_from_sig(sig: bytes) -> int:
+    return int_from_bytes(sig[32:64])
+
+# Extract R_x bytes from signature 
+def get_bytes_R_from_sig(sig: bytes) -> int:
+    return sig[0:32]
+
+# Extract s bytes from signature 
+def get_bytes_s_from_sig(sig: bytes) -> int:
+    return sig[32:64]
+
 # Generate Schnorr signature
 def schnorr_sign(msg: bytes, keypair: str) -> bytes:
     if len(msg) != 32:
@@ -162,7 +182,7 @@ def schnorr_sign(msg: bytes, keypair: str) -> bytes:
     assert R is not None
     k = n - k0 if not has_square_y(R) else k0
     e = int_from_bytes(tagged_hash("BIP340/challenge",
-                                   bytes_from_point(R) + bytes_from_point(P) + msg)) % n
+                                   bytes_from_point(P) + bytes_from_point(R) + msg)) % n
     sig = bytes_from_point(R) + bytes_from_int((k + e * d) % n)
     
     if not schnorr_verify(msg, bytes_from_point(P), sig):
@@ -178,12 +198,12 @@ def schnorr_verify(msg: bytes, pubkey: bytes, sig: bytes) -> bool:
     if len(sig) != 64:
         raise ValueError('The signature must be a 64-byte array.')
     P = lift_x_even_y(pubkey)
-    r = int_from_bytes(sig[0:32])
-    s = int_from_bytes(sig[32:64])
+    r = get_int_R_from_sig(sig)
+    s = get_int_s_from_sig(sig)
     if (P is None) or (r >= p) or (s >= n):
         return False
     e = int_from_bytes(tagged_hash("BIP340/challenge",
-                                   sig[0:32] + pubkey + msg)) % n
+                                   pubkey + get_bytes_R_from_sig(sig) + msg)) % n
     R = point_add(point_mul(G, s), point_mul(P, n - e))
     if (R is None) or (not has_square_y(R)) or (x(R) != r):
         return False
@@ -255,9 +275,11 @@ def schnorr_musig_sign(msg: bytes, users: list) -> bytes:
         ssum += si
     ssum = ssum % n
 
+    signature_bytes = bytes_from_point(Rsum) + bytes_from_int(ssum)
+
     if not schnorr_musig_verify(msg, Rsum, ssum, X):
         raise RuntimeError('The created signature does not pass verification.')
-    return (Rsum, ssum, X)
+    return signature_bytes, bytes_from_point(X)
 
 # Verify Schnorr MuSig signature
 def schnorr_musig_verify(msg: bytes, Rsum: Point, ssum: int, X: Point) -> bool:
@@ -381,6 +403,8 @@ def schnorr_musig2_sign(msg: bytes, users: list) -> bytes:
         ssum += si
     ssum = ssum % n
 
+    signature_bytes = bytes_from_point(Rsum) + bytes_from_int(ssum)
+
     if not schnorr_musig_verify(msg, Rsum, ssum, X):
         raise RuntimeError('The created signature does not pass verification.')
-    return (Rsum, ssum, X)
+    return signature_bytes, bytes_from_point(X)
