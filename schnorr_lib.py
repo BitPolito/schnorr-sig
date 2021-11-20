@@ -260,8 +260,8 @@ def schnorr_musig_sign(msg: bytes, users: list) -> bytes:
             X = point_add(X, Xi)
 
     # e_ = h(X || Rsum || M)
-    e_ = int_from_bytes(
-        sha256(bytes_from_point(X) + bytes_from_point(Rsum) + msg))
+    e_ = int_from_bytes(tagged_hash("BIP340/challenge",
+        (bytes_from_point(X) + bytes_from_point(Rsum) + msg))) % n
 
     ssum = 0
     for u in users:
@@ -285,8 +285,8 @@ def schnorr_musig_sign(msg: bytes, users: list) -> bytes:
 def schnorr_musig_verify(msg: bytes, Rsum: Point, ssum: int, X: Point) -> bool:
 
     # c = h(X || Rsum || M)
-    c = int_from_bytes(
-        sha256(bytes_from_point(X) + bytes_from_point(Rsum) + msg))
+    c = int_from_bytes(tagged_hash("BIP340/challenge",
+        (bytes_from_point(X) + bytes_from_point(Rsum) + msg))) % n
 
     # VERIFICATION
     # ssum * G = Rsum + c * X
@@ -382,8 +382,8 @@ def schnorr_musig2_sign(msg: bytes, users: list) -> bytes:
             Rsum = point_add(Rsum, R)
 
     # c = h(X || Rsum || M)
-    c = int_from_bytes(
-        sha256(bytes_from_point(X) + bytes_from_point(Rsum) + msg))
+    c = int_from_bytes(tagged_hash("BIP340/challenge",
+        (bytes_from_point(X) + bytes_from_point(Rsum) + msg))) %n
 
     # SignAgg' step
     ssum = 0
