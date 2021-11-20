@@ -6,9 +6,12 @@ from schnorr_lib import n, pubkey_gen_from_int
 
 
 def main():
-    parser = argparse.ArgumentParser(description='creates one or more key pairs which are stored in a JSON file and can be used to sign and verify a message')
-    parser.add_argument('-n', '--nkeys', type=int, required=True, help='Number of pairs of keys to generate')
+    parser = argparse.ArgumentParser(description='Creates one or more key pairs which are stored in a JSON file and can be used to sign and verify a message')
+    parser.add_argument('-n', '--nkeys', type=int, required=False, help='Number of pairs of keys to generate, if not specified a single keypair will be generated')
     n_keys = parser.parse_args().nkeys
+
+    if not n_keys: 
+        n_keys = 1
 
     # Create json
     users = {

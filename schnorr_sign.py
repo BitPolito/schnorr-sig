@@ -8,7 +8,8 @@ from schnorr_lib import sha256, schnorr_sign, schnorr_verify, schnorr_musig_sign
 def main():
     parser = argparse.ArgumentParser(
         description='returns the signature and the public key from a private key and a message')
-    parser.add_argument('-m', '--message', type=str, required=True, help='Message')
+    parser.add_argument('-m', '--message', type=str, required=True, help='Message to be signed')
+    parser.add_argument('-i','--index', type=int, help="When single signing, by passing this argument the index of the keypair to use is specified otherwise the first will be used by default")
     parser.add_argument('--musig1', action='store_true', help="Use MuSig-1")
     parser.add_argument('--musig2', action='store_true', help="Use MuSig-2")
     
@@ -16,6 +17,11 @@ def main():
     msg = args.message
     musig1 = args.musig1 # Flag
     musig2 = args.musig2 # Flag
+
+    i = 0 # default value for single signing
+    if args.index:
+        i = args.index
+
 
     # Get message digest
     try:
@@ -28,33 +34,32 @@ def main():
     try:
         users = json.load(open("users.json", "r"))["users"]
     except Exception:
-        print("[e] Error. File nonexistent")
+        print("[e] Error. File nonexistent, create it with create_keypair.py")
         sys.exit(2)
-
+      
     # Signature
-    try:
-        if not ( musig1 or musig2):
-            sig = schnorr_sign(M, users[0])
-            result = schnorr_verify(M, bytes_from_hex(
-                users[0]["publicKey"]), sig)
-            print('> Message =', M.hex())
+    try:    
+        if not ( musig1 or musig2 ):
+            if i < 0 or i >= len(users):
+                print("[e] Error. The index is out of range")
+                sys.exit(2)
+            sig = schnorr_sign(M, users[i])
+            print("> Message =", M.hex())
             print("> Signature =", sig.hex())
-            print(">>> Is the signature right?", result)
         elif musig1:
-            Rsum, ssum, X = schnorr_musig_sign(M, users)
-            result = schnorr_musig_verify(M, Rsum, ssum, X)
-            print('> Message =', M.hex())
-            print("> Signature =", Rsum, ssum)
-            print(">>> Is the signature right?", result)
+            sig, X = schnorr_musig_sign(M, users)
+            print("> Message =", M.hex())
+            print("> Signature =", sig.hex())
+            print("> Public aggregate=", X.hex())
         elif musig2:
-            Rsum, ssum, X = schnorr_musig2_sign(M, users)
-            result = schnorr_musig_verify(M, Rsum, ssum, X)
-            print('> Message =', M.hex())
-            print("> Signature =", Rsum, ssum)
-            print(">>> Is the signature right?", result)
+            sig, X = schnorr_musig2_sign(M, users)
+            print("> Message =", M.hex())
+            print("> Signature =", sig.hex())
+            print("> Public aggregate=", X.hex())
+        
     except Exception as e:
-        print("[e] Exception: \n", e)
-        sys.exit(2)
+            print("[e] Exception: \n", e)
+            sys.exit(2)
 
 
 if __name__ == "__main__":
