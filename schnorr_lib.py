@@ -162,10 +162,10 @@ def get_bytes_s_from_sig(sig: bytes) -> int:
     return sig[32:64]
 
 # Generate Schnorr signature
-def schnorr_sign(msg: bytes, keypair: str) -> bytes:
+def schnorr_sign(msg: bytes, privateKey: str) -> bytes:
     if len(msg) != 32:
         raise ValueError('The message must be a 32-byte array.')
-    d0 = int_from_bytes(bytes_from_hex(keypair["privateKey"]))
+    d0 = int_from_hex(privateKey)
     if not (1 <= d0 <= n - 1):
         raise ValueError(
             'The secret key must be an integer in the range 1..n-1.')
