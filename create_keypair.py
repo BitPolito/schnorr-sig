@@ -1,8 +1,6 @@
-import argparse
-import json
-import os
+import argparse, json, os
 
-from schnorr_lib import n, pubkey_gen_from_int
+from schnorr_lib import n, has_even_y, pubkey_point_gen_from_int, bytes_from_point 
 
 
 def main():
@@ -24,9 +22,16 @@ def main():
         priv = os.urandom(32)
         privkey = int(priv.hex(), 16) % n
 
+        publickey = pubkey_point_gen_from_int(privkey)
+
+        # if (not has_even_y(publickey)):
+        #     privkey = n - privkey
+        print("P["+str(i)+"] is even:", has_even_y(publickey))
+
+        hex_privkey = hex(privkey).replace('0x', '').rjust(64, '0')
         users["users"].append({
-            "privateKey": hex(privkey).replace('0x', ''),
-            "publicKey": pubkey_gen_from_int(privkey).hex()
+            "privateKey": hex_privkey ,
+            "publicKey": bytes_from_point(publickey).hex()
         })
 
     json_object = json.dumps(users, indent=4)
