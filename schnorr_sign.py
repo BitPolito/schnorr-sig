@@ -33,7 +33,7 @@ def main():
         if not ( musig1 or musig2 ):
             if i < 0 or i >= len(users):
                 raise RuntimeError("Index is out of range")
-            sig = schnorr_sign(M, users[i])        
+            sig = schnorr_sign(M, users[i]["privateKey"])        
         elif musig1:
             sig, X = schnorr_musig_sign(M, users) 
         elif musig2:
