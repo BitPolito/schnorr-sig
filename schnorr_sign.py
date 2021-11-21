@@ -1,9 +1,6 @@
-import argparse
-import json
-import sys
-
-from schnorr_lib import sha256, schnorr_sign, schnorr_verify, schnorr_musig_sign, schnorr_musig2_sign, schnorr_musig_verify, bytes_from_hex
-
+import argparse, json, sys
+from utils import print_fails
+from schnorr_lib import sha256, schnorr_sign, schnorr_verify, schnorr_musig_sign, schnorr_musig2_sign
 
 def main():
     parser = argparse.ArgumentParser(
@@ -12,7 +9,6 @@ def main():
     parser.add_argument('-i','--index', type=int, help="When single signing, by passing this argument the index of the keypair to use is specified otherwise the first will be used by default")
     parser.add_argument('--musig1', action='store_true', help="Use MuSig-1")
     parser.add_argument('--musig2', action='store_true', help="Use MuSig-2")
-    
     args = parser.parse_args()
     msg = args.message
     musig1 = args.musig1 # Flag
@@ -22,43 +18,33 @@ def main():
     if args.index:
         i = args.index
 
-
-    # Get message digest
-    try:
-        M = sha256(msg.encode())
-    except Exception:
-        print("[e] Error. Message should be defined")
-        sys.exit(2)
-
     # Get keypair
     try:
         users = json.load(open("users.json", "r"))["users"]
     except Exception:
-        print("[e] Error. File nonexistent, create it with create_keypair.py")
+        print_fails("[e] Error. File nonexistent, create it with create_keypair.py")
         sys.exit(2)
-      
+    
     # Signature
-    try:    
+    try:
+        # Get message digest
+        M = sha256(msg.encode())
+        X = None
         if not ( musig1 or musig2 ):
             if i < 0 or i >= len(users):
-                print("[e] Error. The index is out of range")
-                sys.exit(2)
-            sig = schnorr_sign(M, users[i])
-            print("> Message =", M.hex())
-            print("> Signature =", sig.hex())
+                raise RuntimeError("Index is out of range")
+            sig = schnorr_sign(M, users[i])        
         elif musig1:
-            sig, X = schnorr_musig_sign(M, users)
-            print("> Message =", M.hex())
-            print("> Signature =", sig.hex())
-            print("> Public aggregate=", X.hex())
+            sig, X = schnorr_musig_sign(M, users) 
         elif musig2:
             sig, X = schnorr_musig2_sign(M, users)
-            print("> Message =", M.hex())
-            print("> Signature =", sig.hex())
-            print("> Public aggregate=", X.hex())
         
+        print("> Message =", M.hex())
+        print("> Signature =", sig.hex())
+        if X is not None: 
+            print("> Public aggregate=", X.hex())   
     except Exception as e:
-            print("[e] Exception: \n", e)
+            print_fails("[e] Exception:", e)
             sys.exit(2)
 
 
