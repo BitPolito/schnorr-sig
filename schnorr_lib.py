@@ -180,7 +180,7 @@ def schnorr_sign(msg: bytes, keypair: str) -> bytes:
             'Failure. This happens only with negligible probability.')
     R = point_mul(G, k0)
     assert R is not None
-    k = n - k0 if not has_square_y(R) else k0
+    k = n - k0 if not has_even_y(R) else k0
     e = int_from_bytes(tagged_hash("BIP340/challenge",
                                    bytes_from_point(P) + bytes_from_point(R) + msg)) % n
     sig = bytes_from_point(R) + bytes_from_int((k + e * d) % n)
@@ -205,7 +205,11 @@ def schnorr_verify(msg: bytes, pubkey: bytes, sig: bytes) -> bool:
     e = int_from_bytes(tagged_hash("BIP340/challenge",
                                    pubkey + get_bytes_R_from_sig(sig) + msg)) % n
     R = point_add(point_mul(G, s), point_mul(P, n - e))
-    if (R is None) or (not has_square_y(R)) or (x(R) != r):
+    if (R is None) or (not has_even_y(R)):
+        # print("Please, recompute the sign. R is None or has even y")
+        return False
+    if (x(R) != r):
+        # print("There's something wrong")
         return False
     return True
 
@@ -214,11 +218,11 @@ def schnorr_musig_sign(msg: bytes, users: list) -> bytes:
     if len(msg) != 32:
         raise ValueError('The message must be a 32-byte array.')
     
-    # L = h(P1 || ... || Pn)
-    Li = b''
+    # Key aggregation (KeyAgg), L = h(P1 || ... || Pn)
+    L = b''
     for u in users:
-        Li += pubkey_gen_from_hex(u["privateKey"])
-    L = sha256(Li)
+        L += pubkey_gen_from_hex(u["privateKey"])
+    L = sha256(L)
 
     Rsum = None
     X = None
@@ -229,17 +233,18 @@ def schnorr_musig_sign(msg: bytes, users: list) -> bytes:
             raise ValueError('The secret key must be an integer in the range 1..n-1.')
         Pi = pubkey_point_gen_from_int(di)
         assert Pi is not None
+        # FIXME: 
+        # di = di if has_even_y(Pi) else n - di
 
         # KeyAggCoef
         # ai = h(L||Pi)
         ai = int_from_bytes(sha256(L + bytes_from_point(Pi)))
         u["ai"] = ai
 
-        # Xi = bi * Pi
-        Xi = point_mul(Pi, ai)
-        # X = X1 + ... + Xn
-        X = point_add(X, Xi)
-     
+        # Computation of X~
+        # X~ = X1 + ... + Xn, Xi = ai * Pi 
+        X = point_add(X, point_mul(Pi, ai))
+
         # Random ki with tagged hash
         t = xor_bytes(bytes_from_int(di), tagged_hash("BIP340/aux", get_aux_rand()))
         ki = int_from_bytes(tagged_hash(
@@ -253,11 +258,23 @@ def schnorr_musig_sign(msg: bytes, users: list) -> bytes:
         assert Ri is not None
         
         # Rsum = R1 + ... + Rn
-        Rsum = point_add(Rsum, Ri)
-        
+        Rsum = point_add(Rsum, Ri)       
         u["ki"] = ki
-        
-    # c = h(X || Rsum || M)
+
+    # FIXME:
+    # The aggregate public key X~ needs to be y-even
+    if not has_even_y(X):
+        for i,u in enumerate(users):
+            users[i]["ai"] = n - u["ai"]
+
+    # FIXME: 
+    # If the aggregated nonce does not have an even Y
+    # then negate  individual nonce scalars (and the aggregate nonce)
+    if  not has_even_y(Rsum):
+        for i,u in enumerate(users):
+            users[i]["ki"] = n - u["ki"]
+
+    # c = hash( X || Rsum || M )
     c = int_from_bytes(tagged_hash("BIP340/challenge",
         (bytes_from_point(X) + bytes_from_point(Rsum) + msg))) % n
 
@@ -265,34 +282,24 @@ def schnorr_musig_sign(msg: bytes, users: list) -> bytes:
     for u in users:
         # Get private key di
         di = int_from_hex(u["privateKey"])
+        # FIXME: 
+        # Pi = pubkey_point_gen_from_int(di)        
+        # di = di if has_even_y(Pi) else n - di
+        
         # ci = h(X || Rsum || M) * ai
         ci = c * u["ai"]
-        # si = ki + di * ci mod n
-        si = (u["ki"] + (di * ci)) % n
-        # ssum = s1 + ... + sn
-        ssum += si
+       
+        # ssum = s1 + ... + sn,  # si = ki + di * ci mod n
+        ssum += ((di * ci) + u["ki"]) % n
     ssum = ssum % n
 
     signature_bytes = bytes_from_point(Rsum) + bytes_from_int(ssum)
 
-    if not schnorr_musig_verify(msg, Rsum, ssum, X):
+    # FIXME: 
+    print("Musig verify: \033[92m", schnorr_verify(msg, bytes_from_point(X), signature_bytes),"\033[0m\n")
+    if not schnorr_verify(msg, bytes_from_point(X), signature_bytes):
         raise RuntimeError('The created signature does not pass verification.')
     return signature_bytes, bytes_from_point(X)
-
-# Verify Schnorr MuSig signature
-def schnorr_musig_verify(msg: bytes, Rsum: Point, ssum: int, X: Point) -> bool:
-
-    # c = h(X || Rsum || M)
-    c = int_from_bytes(tagged_hash("BIP340/challenge",
-        (bytes_from_point(X) + bytes_from_point(Rsum) + msg))) % n
-
-    # VERIFICATION
-    # ssum * G = Rsum + c * X
-    Rv = point_mul(G, ssum)
-    other = point_mul(X, c)
-    sumv = point_add(Rsum, other)
-
-    return Rv == sumv
 
 # Generate Schnorr MuSig2 signature
 def schnorr_musig2_sign(msg: bytes, users: list) -> bytes:
@@ -301,12 +308,11 @@ def schnorr_musig2_sign(msg: bytes, users: list) -> bytes:
 
     nu = 2
 
-    # Key aggregation (KeyAgg)
-    # L = h(P1 || ... || Pn)
-    Li = b''
+    # Key aggregation (KeyAgg), L = h(P1 || ... || Pn)
+    L = b''
     for u in users:
-        Li += pubkey_gen_from_hex(u["privateKey"])
-    L = sha256(Li)
+        L += pubkey_gen_from_hex(u["privateKey"])
+    L = sha256(L)
 
     X = None
     for u in users:
@@ -316,6 +322,8 @@ def schnorr_musig2_sign(msg: bytes, users: list) -> bytes:
             raise ValueError('The secret key must be an integer in the range 1..n-1.')
         Pi = pubkey_point_gen_from_int(di)
         assert Pi is not None
+        # FIXME:        
+        # di = di if has_even_y(Pi) else n - di
 
         # KeyAggCoef
         # ai = h(L||Pi)
@@ -323,25 +331,27 @@ def schnorr_musig2_sign(msg: bytes, users: list) -> bytes:
         u["ai"] = ai
 
         # Computation of X~
-        # Xi = ai * Pi (Xi here is not the public key used in the paper)
-        Xi = point_mul(Pi, ai)
-        # X = X1 + ... + Xn
-        X = point_add(X, Xi)
+        # X~ = X1 + ... + Xn, Xi = ai * Pi 
+        X = point_add(X, point_mul(Pi, ai))
 
         # First signing round (Sign and SignAgg) 
         r_list = []
         R_list = []
         for j in range(nu):
-            r = xor_bytes(bytes_from_int(di), tagged_hash("BIP340/aux", get_aux_rand()))
-            r_list.append(int_from_bytes(tagged_hash(
-                "BIP340/nonce", r + bytes_from_point(Pi) + msg)) % n)
-            if r_list[j] == 0:
+            # Random r with tagged hash
+            t = xor_bytes(bytes_from_int(di), tagged_hash("BIP340/aux", get_aux_rand()))
+            r = int_from_bytes(tagged_hash(
+                "BIP340/nonce", t + bytes_from_point(Pi) + msg)) % n
+            if r == 0:
                 raise RuntimeError(
                     'Failure. This happens only with negligible probability.')
         
             # Ri,j = ri,j * G (i rapresent the user)
-            Rij = point_mul(G, r_list[j])
-            R_list.append(Rij)
+            Rij = point_mul(G, r)
+            assert Rij is not None
+
+            r_list.append(r)
+            R_list.append(Rij)            
         u["r_list"] = r_list
         u["R_list"] = R_list
 
@@ -366,11 +376,26 @@ def schnorr_musig2_sign(msg: bytes, users: list) -> bytes:
 
     Rsum = None
     for j, Rj in enumerate(Rj_list):
-        # Rsum = SUM (Rj * b^(j))  (Rsum is R in the paper)
-        R = point_mul(Rj, int_from_bytes(b) ** j)
-        Rsum = point_add(Rsum, R)
+        # Rsum = SUM (Rj * b^(j))  (Rsum is R in the paper) 
+        Rsum = point_add(Rsum, point_mul(Rj, int_from_bytes(b) ** j))
+    assert Rsum is not None   
 
-    # c = h(X || Rsum || M)
+    # FIXME:
+    # The aggregate public key X~ needs to be y-even
+    if not has_even_y(X):
+        for i,u in enumerate(users):
+            users[i]["ai"] = n - u["ai"]
+
+    # FIXME: 
+    # If the aggregated nonce does not have an even Y
+    # then negate  individual nonce scalars (and the aggregate nonce)
+    if  not has_even_y(Rsum):
+        for i,u in enumerate(users):
+            for j,r in enumerate(users[i]["r_list"]):
+                users[i]["r_list"][j] = n - users[i]["r_list"][j]
+    
+
+    # c = hash( X || Rsum || M )
     c = int_from_bytes(tagged_hash("BIP340/challenge",
         (bytes_from_point(X) + bytes_from_point(Rsum) + msg))) %n
 
@@ -379,21 +404,25 @@ def schnorr_musig2_sign(msg: bytes, users: list) -> bytes:
     for u in users:
         # Get private key di
         di = int_from_hex(u["privateKey"])
-
-        # ci = h(X || Rsum || M) * bi
-        ci = c * u["ai"] * di
+        # FIXME: 
+        # Pi = pubkey_point_gen_from_int(di)        
+        # di = di if has_even_y(Pi) else n - di
 
         rb = 0 
         for j in range(nu):
             rb += u["r_list"][j] * int_from_bytes(b)**j
 
-        si = (ci + rb) % n
-        # ssum = s1 + ... + sn
-        ssum += si
+        # ci = h(X || Rsum || M) * ai
+        ci = c * u["ai"] 
+
+        # ssum = s1 + ... + sn, si = (c*ai*di + r) % n
+        ssum += (di * ci + rb) % n
     ssum = ssum % n
 
     signature_bytes = bytes_from_point(Rsum) + bytes_from_int(ssum)
 
-    if not schnorr_musig_verify(msg, Rsum, ssum, X):
+    # FIXME: 
+    print("Musig verify: \033[92m", schnorr_verify(msg, bytes_from_point(X), signature_bytes),'\033[0m\n')
+    if not schnorr_verify(msg, bytes_from_point(X), signature_bytes):
         raise RuntimeError('The created signature does not pass verification.')
     return signature_bytes, bytes_from_point(X)
