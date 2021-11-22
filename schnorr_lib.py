@@ -225,6 +225,7 @@ def schnorr_verify(msg: bytes, pubkey: bytes, sig: bytes) -> bool:
     if len(sig) != 64:
         raise ValueError('The signature must be a 64-byte array.')
     P = lift_x_even_y(pubkey)
+    print("The aggregate is", P)
     r = get_int_R_from_sig(sig)
     s = get_int_s_from_sig(sig)
     if (P is None) or (r >= p) or (s >= n):
@@ -250,7 +251,6 @@ def schnorr_musig_sign(msg: bytes, users: list) -> bytes:
     for u in users:
         L += pubkey_gen_from_hex(u["privateKey"])
         L = sha256(L)
-    print(L)
 
     Rsum = None
     X = None
@@ -261,8 +261,8 @@ def schnorr_musig_sign(msg: bytes, users: list) -> bytes:
             raise ValueError('The secret key must be an integer in the range 1..n-1.')
         Pi = pubkey_point_gen_from_int(di)
         assert Pi is not None
-        # FIXME: 
-        di = di if has_even_y(Pi) else n - di
+        # FIXME: spostato a create_keypair.py -> SEMBRA OK
+        # di = di if has_even_y(Pi) else n - di
 
         # KeyAggCoef
         # ai = h(L||Pi)
@@ -307,7 +307,7 @@ def schnorr_musig_sign(msg: bytes, users: list) -> bytes:
     for u in users:
         # Get private key di
         di = int_from_hex(u["privateKey"])
-        # FIXME: 
+        # FIXME: RISOLTO (VEDI CREATE_KEYPAIR.PY)
         # Pi = pubkey_point_gen_from_int(di)        
         # di = di if has_even_y(Pi) else n - di
         
@@ -320,7 +320,7 @@ def schnorr_musig_sign(msg: bytes, users: list) -> bytes:
 
     signature_bytes = bytes_from_point(Rsum) + bytes_from_int(sSum)
 
-    # FIXME: 
+    # FIXME:
     print("Musig verify: \033[92m", schnorr_verify(msg, bytes_from_point(X), signature_bytes), "\033[0m\n")
     if not schnorr_verify(msg, bytes_from_point(X), signature_bytes):
         raise RuntimeError('The created signature does not pass verification.')
@@ -348,8 +348,8 @@ def schnorr_musig2_sign(msg: bytes, users: list) -> bytes:
             raise ValueError('The secret key must be an integer in the range 1..n-1.')
         Pi = pubkey_point_gen_from_int(di)
         assert Pi is not None
-        # FIXME:        
-        di = di if has_even_y(Pi) else n - di
+        # FIXME:  -> VEDI create_keypair.py
+        # di = di if has_even_y(Pi) else n - di
 
         # KeyAggCoef
         # ai = h(L||Pi)
@@ -363,7 +363,8 @@ def schnorr_musig2_sign(msg: bytes, users: list) -> bytes:
         # First signing round (Sign and SignAgg) 
         r_list = []
         R_list = []
-        # Che fa questo?
+
+        # Che fa questo ciclo? In particolare, chi è j?
         for j in range(nu):
             # Random r with tagged hash
             t = xor_bytes(bytes_from_int(di), tagged_hash("BIP0340/aux", get_aux_rand()))
@@ -396,7 +397,7 @@ def schnorr_musig2_sign(msg: bytes, users: list) -> bytes:
     for Rj in Rj_list:
         Rbytes += bytes_from_point(Rj)
 
-    # b = h(X || R1 || R2 || M)
+    # b = h(R1 || ... || Rn || X || M)
     b = sha256(Rbytes + bytes_from_point(X) + msg)
 
     Rsum = None
@@ -419,7 +420,7 @@ def schnorr_musig2_sign(msg: bytes, users: list) -> bytes:
             for j, r in enumerate(users[i]["r_list"]):
                 users[i]["r_list"][j] = n - users[i]["r_list"][j]
 
-    # c = hash( X || Rsum || M )
+    # c = hash( Rsum || X || M )
     c = int_from_bytes(tagged_hash("BIP0340/challenge", (bytes_from_point(Rsum) + bytes_from_point(X) + msg))) % n
 
     # SignAgg' step
