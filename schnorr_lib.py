@@ -199,7 +199,6 @@ def schnorr_sign(msg: bytes, privateKey: str) -> bytes:
         raise ValueError(
             'The secret key must be an integer in the range 1..n-1.')
     P = point_mul(G, d0)
-    print('THE PUBLIC KEY IS', hex(x(P)))
     assert P is not None
     d = d0 if has_even_y(P) else n - d0
     t = xor_bytes(bytes_from_int(d), tagged_hash("BIP0340/aux", get_aux_rand()))
