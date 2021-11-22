@@ -1,6 +1,8 @@
 from typing import Tuple, Optional
 from binascii import unhexlify
-import hashlib, os, json
+import hashlib
+import os
+import json
 
 # Elliptic curve parameters
 p = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
@@ -12,33 +14,41 @@ G = (0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798,
 # the point at infinity is represented by the None keyword
 Point = Tuple[int, int]
 
+
 # Get bytes from an int
-def bytes_from_int(x: int) -> bytes:
-    return x.to_bytes(32, byteorder="big")
+def bytes_from_int(a: int) -> bytes:
+    return a.to_bytes(32, byteorder="big")
+
 
 # Get bytes from a hex
-def bytes_from_hex(x: hex) -> bytes:
-    return unhexlify(x)
+def bytes_from_hex(a: hex) -> bytes:
+    return unhexlify(a)
+
 
 # Get bytes from a point
 def bytes_from_point(P: Point) -> bytes:
     return bytes_from_int(x(P))
 
+
 # Get an int from bytes
 def int_from_bytes(b: bytes) -> int:
     return int.from_bytes(b, byteorder="big")
 
+
 # Get an int from hex
-def int_from_hex(x: hex) -> int:
-    return int.from_bytes(unhexlify(x), byteorder="big")
+def int_from_hex(a: hex) -> int:
+    return int.from_bytes(unhexlify(a), byteorder="big")
+
 
 # Get x coordinate from a point
 def x(P: Point) -> int:
     return P[0]
 
+
 # Get y coordinate from a point
 def y(P: Point) -> int:
     return P[1]
+
 
 # Point addition
 def point_add(P1: Optional[Point], P2: Optional[Point]) -> Optional[Point]:
@@ -53,7 +63,8 @@ def point_add(P1: Optional[Point], P2: Optional[Point]) -> Optional[Point]:
     else:
         lam = ((y(P2) - y(P1)) * pow(x(P2) - x(P1), p - 2, p)) % p
     x3 = (lam * lam - x(P1) - x(P2)) % p
-    return (x3, (lam * (x(P1) - x3) - y(P1)) % p)
+    return x3, (lam * (x(P1) - x3) - y(P1)) % p
+
 
 # Point multiplication
 def point_mul(P: Optional[Point], n: int) -> Optional[Point]:
@@ -64,6 +75,7 @@ def point_mul(P: Optional[Point], n: int) -> Optional[Point]:
         P = point_add(P, P)
     return R
 
+
 # Note: 
 # This implementation can be sped up by storing the midstate
 # after hashing tag_hash instead of rehashing it all the time
@@ -72,13 +84,16 @@ def tagged_hash(tag: str, msg: bytes) -> bytes:
     tag_hash = hashlib.sha256(tag.encode()).digest()
     return hashlib.sha256(tag_hash + tag_hash + msg).digest()
 
+
 # Check if a point is at infinity
 def is_infinity(P: Optional[Point]) -> bool:
     return P is None
 
+
 # Get xor of bytes
 def xor_bytes(b0: bytes, b1: bytes) -> bytes:
     return bytes(x ^ y for (x, y) in zip(b0, b1))
+
 
 # Get a point from bytes
 def lift_x_square_y(b: bytes) -> Optional[Point]:
@@ -89,22 +104,26 @@ def lift_x_square_y(b: bytes) -> Optional[Point]:
     y = pow(y_sq, (p + 1) // 4, p)
     if pow(y, 2, p) != y_sq:
         return None
-    return (x, y)
+    return x, y
+
 
 def lift_x_even_y(b: bytes) -> Optional[Point]:
     P = lift_x_square_y(b)
     if P is None:
         return None
     else:
-        return (x(P), y(P) if y(P) % 2 == 0 else p - y(P))
+        return x(P), y(P) if y(P) % 2 == 0 else p - y(P)
+
 
 # Get hash digest with SHA256
 def sha256(b: bytes) -> bytes:
     return hashlib.sha256(b).digest()
 
+
 # Check if an int is square
-def is_square(x: int) -> bool:
-    return int(pow(x, (p - 1) // 2, p)) == 1
+def is_square(a: int) -> bool:
+    return int(pow(a, (p - 1) // 2, p)) == 1
+
 
 # Check if a point has square y coordinate
 def has_square_y(P: Optional[Point]) -> bool:
@@ -114,15 +133,18 @@ def has_square_y(P: Optional[Point]) -> bool:
     assert P is not None
     return is_square(y(P))
 
+
 # Check if a point has even y coordinate
 def has_even_y(P: Point) -> bool:
     return y(P) % 2 == 0
+
 
 # Generate public key from an int
 def pubkey_gen_from_int(seckey: int) -> bytes:
     P = point_mul(G, seckey)
     assert P is not None
     return bytes_from_point(P)
+
 
 # Generate public key from a hex
 def pubkey_gen_from_hex(seckey: hex) -> bytes:
@@ -135,31 +157,38 @@ def pubkey_gen_from_hex(seckey: hex) -> bytes:
     assert P is not None
     return bytes_from_point(P)
 
+
 # Generate public key (as a point) from an int
 def pubkey_point_gen_from_int(seckey: int):
     P = point_mul(G, seckey)
     assert P is not None 
     return P
 
+
 # Generate auxiliary random of 32 bytes
 def get_aux_rand() -> bytes:
     return os.urandom(32)
 
-# Extract R_x int value from signature 
+
+# Extract R_x int value from signature
 def get_int_R_from_sig(sig: bytes) -> int:
     return int_from_bytes(sig[0:32])
+
 
 # Extract s int value from signature 
 def get_int_s_from_sig(sig: bytes) -> int:
     return int_from_bytes(sig[32:64])
 
+
 # Extract R_x bytes from signature 
 def get_bytes_R_from_sig(sig: bytes) -> int:
     return sig[0:32]
 
+
 # Extract s bytes from signature 
 def get_bytes_s_from_sig(sig: bytes) -> int:
     return sig[32:64]
+
 
 # Generate Schnorr signature
 def schnorr_sign(msg: bytes, privateKey: str) -> bytes:
@@ -170,24 +199,23 @@ def schnorr_sign(msg: bytes, privateKey: str) -> bytes:
         raise ValueError(
             'The secret key must be an integer in the range 1..n-1.')
     P = point_mul(G, d0)
+    print('THE PUBLIC KEY IS', hex(x(P)))
     assert P is not None
     d = d0 if has_even_y(P) else n - d0
-    t = xor_bytes(bytes_from_int(d), tagged_hash("BIP340/aux", get_aux_rand()))
-    k0 = int_from_bytes(tagged_hash(
-        "BIP340/nonce", t + bytes_from_point(P) + msg)) % n
+    t = xor_bytes(bytes_from_int(d), tagged_hash("BIP0340/aux", get_aux_rand()))
+    k0 = int_from_bytes(tagged_hash("BIP0340/nonce", t + bytes_from_point(P) + msg)) % n
     if k0 == 0:
-        raise RuntimeError(
-            'Failure. This happens only with negligible probability.')
+        raise RuntimeError('Failure. This happens only with negligible probability.')
     R = point_mul(G, k0)
     assert R is not None
     k = n - k0 if not has_even_y(R) else k0
-    e = int_from_bytes(tagged_hash("BIP340/challenge",
-                                   bytes_from_point(P) + bytes_from_point(R) + msg)) % n
+    e = int_from_bytes(tagged_hash("BIP0340/challenge", bytes_from_point(R) + bytes_from_point(P) + msg)) % n
     sig = bytes_from_point(R) + bytes_from_int((k + e * d) % n)
     
     if not schnorr_verify(msg, bytes_from_point(P), sig):
         raise RuntimeError('The created signature does not pass verification.')
     return sig
+
 
 # Verify Schnorr signature
 def schnorr_verify(msg: bytes, pubkey: bytes, sig: bytes) -> bool:
@@ -202,16 +230,16 @@ def schnorr_verify(msg: bytes, pubkey: bytes, sig: bytes) -> bool:
     s = get_int_s_from_sig(sig)
     if (P is None) or (r >= p) or (s >= n):
         return False
-    e = int_from_bytes(tagged_hash("BIP340/challenge",
-                                   pubkey + get_bytes_R_from_sig(sig) + msg)) % n
+    e = int_from_bytes(tagged_hash("BIP0340/challenge", get_bytes_R_from_sig(sig) + pubkey + msg)) % n
     R = point_add(point_mul(G, s), point_mul(P, n - e))
     if (R is None) or (not has_even_y(R)):
         # print("Please, recompute the sign. R is None or has even y")
         return False
-    if (x(R) != r):
+    if x(R) != r:
         # print("There's something wrong")
         return False
     return True
+
 
 # Generate Schnorr MuSig signature
 def schnorr_musig_sign(msg: bytes, users: list) -> bytes:
@@ -300,6 +328,7 @@ def schnorr_musig_sign(msg: bytes, users: list) -> bytes:
     if not schnorr_verify(msg, bytes_from_point(X), signature_bytes):
         raise RuntimeError('The created signature does not pass verification.')
     return signature_bytes, bytes_from_point(X)
+
 
 # Generate Schnorr MuSig2 signature
 def schnorr_musig2_sign(msg: bytes, users: list) -> bytes:
