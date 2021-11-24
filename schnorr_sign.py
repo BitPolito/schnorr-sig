@@ -1,6 +1,6 @@
 import argparse, json, sys
 from utils import print_fails
-from schnorr_lib import sha256, schnorr_sign, schnorr_verify, schnorr_musig_sign, schnorr_musig2_sign
+from schnorr_lib import sha256, schnorr_sign, schnorr_musig_sign, schnorr_musig2_sign
 
 def main():
     parser = argparse.ArgumentParser(
@@ -38,7 +38,6 @@ def main():
             sig, X = schnorr_musig_sign(M, users) 
         elif musig2:
             sig, X = schnorr_musig2_sign(M, users)
-        
         print("> Message =", M.hex())
         print("> Signature =", sig.hex())
         if X is not None: 

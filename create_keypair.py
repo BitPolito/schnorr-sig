@@ -24,14 +24,9 @@ def main():
 
         publickey = pubkey_point_gen_from_int(privkey_int)
 
-        # if (not has_even_y(publickey)):
-        #     privkey = n - privkey
-
         # Check if the point P has the y-coordinate even; negate the private key otherwise
         privkey_even = privkey_int if has_even_y(publickey) else n - privkey_int
-        publickey_even = pubkey_point_gen_from_int(privkey_even)
-        print("P[" + str(i) + "] is even:", has_even_y(publickey_even))
-
+        
         hex_privkey = hex(privkey_even).replace('0x', '').rjust(64, '0')
         users["users"].append({
             "privateKey": hex_privkey,
