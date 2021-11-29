@@ -57,7 +57,7 @@ $ pip install notebook
 $ python3 -m notebook
 ```
 
-Select the right .ipynb file from your folders and enjoy! You can:
+Select the schnorr.ipynb file from your folders and enjoy! You can:
 - generate your own keypairs;
 - generate a Schnorr, MuSig1 or MuSig2 signature;
 - check that the obtained signature is valid.
