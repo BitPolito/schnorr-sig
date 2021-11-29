@@ -27,6 +27,7 @@ See <https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki> and the ref
 All the functions used in those scripts are collected in the library `schnorr_lib.py`.
 
 ## How to install and run code
+We used Python3 to write these scripts.
 
 ### Installation
 ```console
@@ -42,10 +43,25 @@ $ pip install typing
 
 ### Usage
 ```console
-$ python3 create_keypair.py -n <number_of_keys>
-$ python3 schnorr_sign.py --musig (optional) -m <message>
-$ python3 schnorr_verify.py -s <signature> -p <public_key> -m <message>
+$ python create_keypair.py -n <number_of_keys>
+$ python schnorr_sign.py --musig (optional) -m <message>
+$ python schnorr_verify.py -s <signature> -p <public_key> -m <message>
 ```
+
+## Jupyter
+The code can also be launched from a Jupyter Notebook, thanks to the script collected in the library "schnorr.ipynb".
+```console
+# Download Jupyter Notebook
+$ pip install notebook
+
+# Launch
+$ python -m notebook
+```
+
+Select the schnorr.ipynb file from your folders and enjoy! You can:
+- generate your own keypairs;
+- generate a Schnorr, MuSig1 or MuSig2 signature;
+- check that the obtained signature is valid.
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
