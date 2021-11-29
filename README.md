@@ -47,6 +47,17 @@ $ python3 schnorr_sign.py --musig (optional) -m <message>
 $ python3 schnorr_verify.py -s <signature> -p <public_key> -m <message>
 ```
 
+## Jupyter
+The code can also be launched from a Jupyter Notebook, thanks to the script collected in the library "schnorr.ipynb".
+```console
+#Download Jupyter Notebook
+$ pip install notebook
+
+#Launch
+$ python -m notebook
+```
+
+
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
