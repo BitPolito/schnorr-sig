@@ -54,9 +54,13 @@ The code can also be launched from a Jupyter Notebook, thanks to the script coll
 $ pip install notebook
 
 # Launch
-$ python -m notebook
+$ python3 -m notebook
 ```
 
+Select the right .ipynb file from your folders and enjoy! You can:
+- generate your own keypairs;
+- generate a Schnorr, MuSig1 or MuSig2 signature;
+- check that the obtained signature is valid.
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
