@@ -14,7 +14,7 @@ There are four main scripts:
 
 - #### Schnorr signer
 `schnorr_sign.py` returns the signature from one or more private keys and a message. <br>
-**Syntax**: `schnorr_sign.py [--musig1//--musig2] (optional) -m <message>`
+**Syntax**: `schnorr_sign.py [--musig1 || --musig2] (optional) -m <message>`
 
 - #### Schnorr verifier
 `schnorr_verify.py` returns `True` or `False` from a signature, a single public key or an aggregated one, and a message. <br>
@@ -44,7 +44,7 @@ $ pip install typing
 ### Usage
 ```console
 $ python create_keypair.py -n <number_of_keys>
-$ python schnorr_sign.py [--musig1//--musig2] (optional) -m <message>
+$ python schnorr_sign.py [--musig1 || --musig2] (optional) -m <message>
 $ python schnorr_verify.py -s <signature> -p <public_key> -m <message>
 ```
 
