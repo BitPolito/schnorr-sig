@@ -14,7 +14,7 @@ There are four main scripts:
 
 - #### Schnorr signer
 `schnorr_sign.py` returns the signature from one or more private keys and a message. <br>
-**Syntax**: `schnorr_sign.py --musig (optional) -m <message>`
+**Syntax**: `schnorr_sign.py [--musig1//--musig2] (optional) -m <message>`
 
 - #### Schnorr verifier
 `schnorr_verify.py` returns `True` or `False` from a signature, a single public key or an aggregated one, and a message. <br>
