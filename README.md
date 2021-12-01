@@ -44,7 +44,7 @@ $ pip install typing
 ### Usage
 ```console
 $ python create_keypair.py -n <number_of_keys>
-$ python schnorr_sign.py --musig (optional) -m <message>
+$ python schnorr_sign.py [--musig1//--musig2] (optional) -m <message>
 $ python schnorr_verify.py -s <signature> -p <public_key> -m <message>
 ```
 
