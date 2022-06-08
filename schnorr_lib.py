@@ -2,7 +2,6 @@ from typing import Tuple, Optional
 from binascii import unhexlify
 import hashlib
 import os
-import json
 
 # Elliptic curve parameters
 p = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
