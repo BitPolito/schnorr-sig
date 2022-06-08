@@ -1,5 +1,7 @@
 # Schnorr Signatures
 
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/BITPoliTO/schnorr-sig.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/BITPoliTO/schnorr-sig/context:python)
+
 This is a **Schnorr signatures utility** for *educational purposes* only, developed by BIT PoliTO in Python3.
 
 The classic signature and verification functions are developed from the BIP340 reference implementation, while we tried to keep as close as possible to it the MuSig functions, even if they are not specified (yet).
