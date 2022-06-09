@@ -2,16 +2,19 @@
 
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/BITPoliTO/schnorr-sig.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/BITPoliTO/schnorr-sig/context:python)
 
-This is a **Schnorr signatures utility** for *educational purposes* only, developed by BIT PoliTO in Python3.
+This is a **Schnorr Signatures** utility for *educational purposes* only, developed by [BIT PoliTO](https://www.bitpolito.it) in Python3.
 
-The classic signature and verification functions are developed from the BIP340 reference implementation, while we tried to keep as close as possible to it the MuSig functions, even if they are not specified (yet).
+The classic signature and verification functions are based on the [BIP340 reference implementation](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki), while we tried to keep as close as possible to it the MuSig functions, even if they are not specified (yet).
+
+### Main authors
+[Alessandro Guggino](https://github.com/alessandroguggino), [Luca Giorgino](https://github.com/lucagiorgino), [Andrea Gangemi](https://github.com/Gangi94), [Fadi Barbara](https://github.com/disnocen).
 
 ## Scripts
 
 There are four main scripts:
 
 - #### Key pair creator
-`create_keypair.py` creates one or more key pairs which are stored in a JSON file and can be used to sign and verify a message.
+`create_keypair.py` creates one or more key pairs which are stored in a JSON file and can be used to sign and verify a message. <br>
 **Syntax**: `create_keypair.py -n <number of keys>`
 
 - #### Schnorr signer
@@ -23,10 +26,9 @@ There are four main scripts:
 **Syntax**: `schnorr_verify.py -s <signature> -p <public_key> -m <message>`
 
 - #### Schnorr tester
-`schnorr_test.py` is the BIP340 reference implementation minimally changed to perform a test from the `test-vector.csv`. <br>
-See <https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki> and the reference implementation at <https://github.com/bitcoin/bips/tree/master/bip-0340>.
+`schnorr_test.py` is the BIP340 reference implementation minimally changed to perform a test from the [test vectors](https://github.com/bitcoin/bips/blob/master/bip-0340/test-vectors.csv).
 
-All the functions used in those scripts are collected in the library `schnorr_lib.py`.
+**Note:** All the functions used in those scripts are collected in the library `schnorr_lib.py`.
 
 ## How to install and run code
 We used Python3 to write these scripts.
@@ -38,9 +40,6 @@ $ git clone https://github.com/BITPoliTO/schnorr-sig.git
 
 # change the working directory to schnorr-sig
 $ cd schnorr-sig
-
-# install general requirements
-$ pip install typing 
 ```
 
 ### Usage
@@ -60,7 +59,7 @@ $ pip install notebook
 $ python -m notebook
 ```
 
-Select the schnorr.ipynb file from your folders and enjoy! You can:
+Select `schnorr.ipynb` from your folders and enjoy! You can:
 - generate your own keypairs;
 - generate a Schnorr, MuSig1 or MuSig2 signature;
 - check that the obtained signature is valid.
@@ -68,8 +67,7 @@ Select the schnorr.ipynb file from your folders and enjoy! You can:
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
-#### Made to educate the BIT PoliTO team 🎓 by  
-  
+## Contributors
 <a href="https://github.com/BITPoliTO/schnorr-sig/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=BITPoliTO/schnorr-sig" />
 </a>
